@@ -56,7 +56,9 @@ TOPE_FICHERO = 5 * 1024 * 1024    # ningún fichero del programa pasa de esto
 TOPE_DESCARGA = 20 * 1024 * 1024  # ni el ZIP entero
 
 # Lo que se reemplaza. Todo lo que no esté aquí se queda como está.
-CARPETAS = ("ad5x", "piezas", "web", "pruebas")
+# `distribucion` entra por la plantilla 3MF que lleva dentro: sin ella la
+# impresora no abre el trabajo, y si algún día cambia tiene que llegar.
+CARPETAS = ("ad5x", "piezas", "web", "pruebas", "distribucion")
 FICHEROS = (
     "run.py",
     "requirements.txt",
