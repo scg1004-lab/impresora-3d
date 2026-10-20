@@ -14,6 +14,7 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -239,51 +240,71 @@ def slice_stl(
         except Exception:
             entrada = stl  # si algo falla, al menos se lamina
 
-    command = [
-        str(config.slicer_exe),
-        str(entrada),
-        *_profile_args(config, material, quality, nozzle),
-        "--orient", "1",
-        "--arrange", "1",
-        "--slice", "0",
-        "--outputdir", str(target_dir),
-    ]
+    # Orca siempre escribe «plate_1.gcode», así que dos laminados a la vez en
+    # la misma carpeta se pisan: uno se lleva el fichero del otro, o se
+    # encuentra con que ya no está. Cada uno en su propia carpeta y se acabó.
+    # (Pasó de verdad: el navegador lamina solo al traer un modelo, y basta
+    # con que haya otro laminado en marcha para que uno de los dos acabe con
+    # el g-code equivocado. Eso es peor que un error: imprimes otra cosa.)
+    with tempfile.TemporaryDirectory(prefix="taller-ad5x-") as taller:
+        obrador = Path(taller)
+        command = [
+            str(config.slicer_exe),
+            str(entrada),
+            *_profile_args(config, material, quality, nozzle),
+            "--orient", "1",
+            "--arrange", "1",
+            "--slice", "0",
+            "--outputdir", str(obrador),
+        ]
+
+        try:
+            process = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=SLICE_TIMEOUT,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise SlicerError(f"El laminado superó {SLICE_TIMEOUT}s") from exc
+        except OSError as exc:
+            raise SlicerError(f"No se pudo lanzar Orca: {exc}") from exc
+
+        log = (process.stdout or "") + (process.stderr or "")
+
+        if process.returncode != 0:
+            tail = "\n".join(log.strip().splitlines()[-12:]) or "sin salida"
+            raise SlicerError(f"Orca terminó con código {process.returncode}:\n{tail}")
+
+        produced = sorted(
+            obrador.glob("plate_*.gcode"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if not produced:
+            tail = "\n".join(log.strip().splitlines()[-12:]) or "sin salida"
+            raise SlicerError(f"Orca no dejó ningún .gcode.\n{tail}")
+
+        if entrada != stl:
+            entrada.unlink(missing_ok=True)  # copia de trabajo, ya no hace falta
+
+        # Mover el resultado tampoco puede tirar la petición abajo: si el
+        # fichero de destino lo tiene abierto otro programa, eso es un aviso
+        # que se entiende, no un error 500 sin explicación.
+        final = target_dir / f"{stl.stem}.gcode"
+        try:
+            if final.exists():
+                final.unlink()
+            shutil.move(str(produced[0]), str(final))
+        except OSError as exc:
+            raise SlicerError(
+                f"No se ha podido guardar «{final.name}»: {exc}. "
+                "¿Lo tienes abierto en otro programa?"
+            ) from exc
 
     try:
-        process = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            timeout=SLICE_TIMEOUT,
-            check=False,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise SlicerError(f"El laminado superó {SLICE_TIMEOUT}s") from exc
+        estimate, volume, layers = _read_metadata(final)
     except OSError as exc:
-        raise SlicerError(f"No se pudo lanzar Orca: {exc}") from exc
-
-    log = (process.stdout or "") + (process.stderr or "")
-
-    if process.returncode != 0:
-        tail = "\n".join(log.strip().splitlines()[-12:]) or "sin salida"
-        raise SlicerError(f"Orca terminó con código {process.returncode}:\n{tail}")
-
-    produced = sorted(
-        target_dir.glob("plate_*.gcode"),
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
-    if not produced:
-        tail = "\n".join(log.strip().splitlines()[-12:]) or "sin salida"
-        raise SlicerError(f"Orca no dejó ningún .gcode.\n{tail}")
-
-    if entrada != stl:
-        entrada.unlink(missing_ok=True)  # copia de trabajo, ya no hace falta
-
-    final = target_dir / f"{stl.stem}.gcode"
-    if final.exists():
-        final.unlink()
-    shutil.move(str(produced[0]), str(final))
-
-    estimate, volume, layers = _read_metadata(final)
+        raise SlicerError(f"No se ha podido leer «{final.name}»: {exc}") from exc
     return Sliced(path=final, estimate=estimate, filament_cm3=volume, layers=layers)
