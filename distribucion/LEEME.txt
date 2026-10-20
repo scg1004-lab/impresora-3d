@@ -1,0 +1,110 @@
+TALLER AD5X
+===========
+
+Para hacer piezas para la impresora 3D.
+
+
+PARA EMPEZAR
+------------
+
+Doble clic en "Taller AD5X.cmd".
+
+Se abre una ventana negra. TARDA UNOS SEGUNDOS en arrancar
+(la primera vez puede ser medio minuto): el navegador se abre
+solo cuando el programa está listo, así que no hay que hacer
+nada mientras tanto.
+
+La ventana negra tiene que quedarse abierta mientras lo uses.
+Para cerrar el programa, cierra esa ventana.
+
+Si Windows avisa de que no conoce el programa, es normal: es un
+programa hecho en casa, no comprado. Dale a "Más información" y
+"Ejecutar de todas formas".
+
+
+SE PONE AL DÍA SOLO
+------------------
+
+Cuando papá añade una pieza nueva, no hay que copiar nada: al abrir el
+programa mira si hay novedades y se actualiza en un segundo. Si no hay
+internet tampoco pasa nada, arranca igual con lo que tiene.
+
+
+CÓMO SE USA
+-----------
+
+1. Elige una pieza de la lista de la izquierda.
+
+   "Animalito (generado)" es la más divertida: eliges el bicho de
+   una lista y el tamaño. Con 20 mm sale como las figuritas de
+   resina pequeñas.
+
+   "Llavero" hace una chapa con tu nombre y su anilla, en cuatro
+   formas: placa, pastilla, círculo y corazón.
+
+   "Anillo" hace un anillo a la medida del dedo. Puedes dar el
+   diámetro en milímetros o la talla de toda la vida. Para saber
+   la medida: una tira de papel alrededor del dedo, la marcas, la
+   mides, y esos milímetros menos 40 son la talla. Imprime uno de
+   prueba antes de hacer varios, que a veces entra justo.
+
+   O, para una figura: dale a "Traer fichero" y abre la carpeta
+   "modelos", que ya tiene 16 animalitos preparados — tiburón,
+   tortuga, unicornio, pulpo, gato, pato, nutria, camaleón...
+   También puedes bajarte más de internet (ver más abajo).
+
+2. Cambia las medidas si quieres. Están en milímetros.
+
+3. "Generar STL". La pieza aparece en 3D a la derecha.
+   Puedes girarla con el ratón.
+
+4. "Laminar". Esto la prepara para la impresora y te dice cuánto
+   tardará en imprimirse.
+
+5. "Descargar". Guarda el archivo en un pendrive, enchúfalo a la
+   impresora y elígelo en su pantalla.
+
+   Si papá ha configurado la impresora en este ordenador (el
+   archivo .env), aparecerán además los colores que tiene puestos
+   y podrás mandarla directamente con "Enviar a la impresora",
+   sin pendrive.
+
+
+DE DÓNDE BAJAR FIGURAS
+----------------------
+
+printables.com
+makerworld.com
+thingiverse.com
+
+Busca "flexi" o "print in place": son las que salen ya montadas y
+se mueven, sin tener que pegar nada.
+
+En makerworld.com, baja el archivo .stl (no el .3mf, que es para
+otra marca de impresora).
+
+
+SI EL BOTÓN "LAMINAR" ESTÁ GRIS
+-------------------------------
+
+Falta el programa Orca en este ordenador. Sin él puedes diseñar
+piezas y descargar el .stl, pero el último paso (prepararla para
+imprimir) hay que hacerlo en el ordenador de papá.
+
+Para arreglarlo, se instala Orca-Flashforge desde flashforge.com
+y el botón se activa solo la próxima vez que abras el programa.
+
+
+SI ALGO NO VA
+-------------
+
+Si el navegador dice "no se puede acceder" o "rechazó la
+conexión", es que el programa aún estaba arrancando: espera
+unos segundos y recarga la página con F5.
+
+Si das doble clic y ya lo tenías abierto, no pasa nada: te
+vuelve a sacar la página y se cierra sola la ventana nueva.
+
+Si no, cierra la ventana negra y vuelve a dar doble clic.
+
+Si sigue sin ir, dile a papá qué pone en la ventana negra.

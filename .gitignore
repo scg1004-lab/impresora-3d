@@ -1,0 +1,10 @@
+.venv/
+salida/
+.env
+__pycache__/
+*.pyc
+distribucion/_build/
+modelos/
+.ultima-ip
+.version
+.anterior/

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AD5X · Taller</title>
+<link rel="stylesheet" href="/static/app.css?v={{ v }}">
+</head>
+<body>
+<header>
+  <h1>Taller AD5X</h1>
+  <div class="cabecera-acciones">
+    <button id="abrir-trabajos" class="chip chip--boton">
+      Trabajos <span id="cola-cuenta" hidden></span>
+    </button>
+    <div id="printer-chip" class="chip chip--unknown">Impresora: comprobando…</div>
+  </div>
+</header>
+
+<main>
+  <nav id="catalogue">
+    <h2>Piezas</h2>
+    {% for part in parts %}
+    <button class="part" data-slug="{{ part.slug }}">
+      <strong>{{ part.name }}</strong>
+      <span>{{ part.description }}</span>
+    </button>
+    {% endfor %}
+    <div class="import">
+      <strong>¿Un modelo de internet?</strong>
+      <p class="muted">Trae el .stl que te hayas descargado y lamínalo aquí.
+      También vale un .gcode o .3mf ya laminado.</p>
+      <label class="button" for="import-file">Traer fichero</label>
+      <input id="import-file" type="file"
+             accept=".stl,.obj,.step,.stp,.gcode,.3mf,.gx" hidden>
+    </div>
+
+    {% if broken %}
+    <div class="broken">
+      <strong>Piezas con error</strong>
+      {% for slug, err in broken.items() %}<code>{{ slug }}: {{ err }}</code>{% endfor %}
+    </div>
+    {% endif %}
+  </nav>
+
+  <section id="form-panel">
+    <div id="empty-state">
+      <p>Elige una pieza del catálogo y ajusta sus cotas.</p>
+      <p class="muted">Cada pieza es un fichero en <code>piezas/</code>. Para una pieza
+      nueva, pídemela y la añado ahí; aparecerá aquí al recargar.</p>
+    </div>
+    <form id="params" hidden>
+      <h2 id="part-name"></h2>
+      <p id="part-notes" class="notes"></p>
+      <div id="fields"></div>
+      <button type="submit" class="primary">Generar STL</button>
+    </form>
+  </section>
+
+  <section id="result-panel">
+    <div id="viewer"></div>
+    <div id="result" hidden>
+      <dl>
+        <div><dt>Medidas</dt><dd id="r-size">—</dd></div>
+        <div><dt>Material</dt><dd id="r-volume">—</dd></div>
+        <div><dt>Tiempo de impresión</dt><dd id="r-time">—</dd></div>
+        <div><dt>Fichero</dt><dd id="r-file">—</dd></div>
+      </dl>
+      <div id="warnings"></div>
+      {% if options.materials %}
+      <div class="print-settings">
+        <label>Material
+          <select id="material">
+            {% for m in options.materials %}
+            <option value="{{ m }}" {% if m == default_material %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Calidad
+          <select id="quality">
+            {% for q in options.qualities %}
+            <option value="{{ q }}" {% if q == default_quality %}selected{% endif %}>{{ q }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+      {% endif %}
+      {% if not slicer_ready %}
+      <div class="alert alert--warn">
+        <strong>Falta Orca en este ordenador.</strong> Puedes diseñar piezas y
+        descargar el .stl, pero no prepararlas para imprimir. Instala
+        Orca-Flashforge y el botón «Laminar» se activará solo.
+      </div>
+      {% endif %}
+      <div id="ifs" hidden>
+        <h3 id="ifs-title">Color</h3>
+        <p id="ifs-help" class="muted"></p>
+        <div id="ifs-rows"></div>
+      </div>
+      <div class="actions">
+        <a id="a-download" class="button primary" download>Descargar STL</a>
+        <button id="a-slice" class="button" {% if not slicer_ready %}disabled
+          title="No se ha encontrado Orca en este equipo"{% endif %}>Laminar</button>
+        <button id="a-queue" class="button" disabled>Añadir a la cola</button>
+        <button id="a-send" class="button" disabled>Enviar a la impresora</button>
+        <button id="a-print" class="button" disabled>Enviar e imprimir</button>
+      </div>
+      <p id="status-line" class="muted"></p>
+    </div>
+  </section>
+</main>
+
+<aside id="trabajos" hidden>
+  <header>
+    <h2>Trabajos</h2>
+    <button id="cerrar-trabajos" title="Cerrar">✕</button>
+  </header>
+
+  <section id="t-actual">
+    <h3>Ahora mismo</h3>
+    <div id="t-actual-cuerpo" class="muted">Consultando…</div>
+  </section>
+
+  <section>
+    <div class="t-titulo">
+      <h3>En cola</h3>
+      <label class="t-auto">
+        <input type="checkbox" id="t-auto" checked>
+        Lanzar sola
+      </label>
+    </div>
+    <p class="muted" id="t-auto-nota">
+      Cuando la impresora queda libre, se manda el siguiente.
+    </p>
+    <div id="t-cola"></div>
+    <button id="t-limpiar" class="button">Quitar los terminados</button>
+  </section>
+
+  <section>
+    <h3>Guardados en la impresora</h3>
+    <div id="t-almacenados" class="muted">—</div>
+  </section>
+</aside>
+
+<script>
+  window.PARTS = {{ parts | tojson }};
+  window.SLICER_READY = {{ slicer_ready | tojson }};
+</script>
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="/static/app.js?v={{ v }}"></script>
+</body>
+</html>

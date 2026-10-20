@@ -1,0 +1,46 @@
+QUÉ HAY AQUÍ
+============
+
+Esta carpeta NO se copia a ningún sitio. Es el taller donde se fabrica
+el paquete, no el paquete.
+
+
+LO ÚNICO QUE TE LLEVAS
+----------------------
+
+   _build\Taller AD5X.zip        (unos 537 MB)
+
+Ese fichero ya lo lleva todo dentro: el programa, Python, las
+librerías y la plantilla. Se copia al otro ordenador, se descomprime
+donde quieras y se arranca con doble clic en "Taller AD5X.cmd".
+
+No hace falta instalar nada más en ese ordenador.
+
+
+EL RESTO, PARA QUÉ ES
+---------------------
+
+empaquetar.py        El script que construye el ZIP. Se queda aquí.
+
+plantilla-3mf\       Los ficheros que la impresora exige dentro de
+                     cada trabajo (y el ejemplar original que exportó
+                     Orca, del que se copió la estructura).
+                     Ya viaja una copia dentro del ZIP.
+
+LEEME.txt            El original de las instrucciones para tu hija.
+                     Ya va dentro del ZIP.
+
+                     El lanzador "Taller AD5X.cmd" NO esta aqui: vive en
+                     la raiz del proyecto y vale para los dos sitios. Aqui
+                     habia una copia y acababa arrancandose la que no era.
+
+_build\              Donde aparece el ZIP terminado.
+
+
+PARA VOLVER A GENERARLO
+-----------------------
+
+Si cambia algo del programa y quieres llevarlo al otro ordenador, hay
+que rehacer el ZIP. Pídemelo y lo hago: lleva un par de minutos, porque
+el intérprete y las librerías se sacan del ZIP anterior en vez de
+volver a descargarlos.
