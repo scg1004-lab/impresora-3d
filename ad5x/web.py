@@ -17,7 +17,7 @@ from starlette.requests import Request
 
 from .cad import build_part
 from .catalog import discover as discover_parts
-from .config import BUSCADO, CONFIG
+from .config import BUSCADO, CONFIG, ENV_PATH
 from .gcode import default_mappings, is_sliced, read_info
 from .mesh import MeshError, threemf_to_stl
 from .cola import Cola, Despachador
@@ -232,7 +232,13 @@ def _found_on_network() -> list[dict[str, str]]:
 @app.get("/api/printer")
 def api_printer():
     if not CONFIG.printer_configured:
-        return {"configured": False, "found": _found_on_network()}
+        # Decir DONDE va el fichero, no solo que falta: quien lo tiene que
+        # crear suele estar en otra casa y sin saber que es un «.env».
+        return {
+            "configured": False,
+            "found": _found_on_network(),
+            "env_file": str(ENV_PATH),
+        }
     try:
         status = printer.status()
     except PrinterError as exc:

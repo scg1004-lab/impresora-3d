@@ -9,7 +9,21 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
 
-load_dotenv(ROOT / ".env")
+# Windows esconde las extensiones conocidas, asi que un fichero creado con el
+# Bloc de notas y llamado ".env" acaba siendo ".env.txt" sin que se vea. Pasa
+# siempre, y el sintoma es el peor posible: la app dice que falta configurar
+# la impresora mientras el fichero esta ahi delante.
+NOMBRES_ENV = (".env", ".env.txt", "env.txt", "env")
+
+def _buscar_env() -> Path:
+    for nombre in NOMBRES_ENV:
+        candidato = ROOT / nombre
+        if candidato.is_file():
+            return candidato
+    return ROOT / ".env"
+
+ENV_PATH = _buscar_env()
+load_dotenv(ENV_PATH)
 
 
 def _flag(name: str, default: bool = False) -> bool:

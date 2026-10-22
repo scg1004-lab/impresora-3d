@@ -630,7 +630,9 @@
     caja.replaceChildren();
 
     if (!data.configured) {
-      caja.textContent = "La impresora no está configurada en el .env.";
+      caja.textContent = data.env_file
+        ? "Falta el fichero de configuración de la impresora: " + data.env_file
+        : "La impresora no está configurada en el .env.";
       return;
     }
     if (data.error || !data.actual) {
@@ -817,6 +819,10 @@
         chip.textContent = seen
           ? "Encontrada: " + seen + " · falta configurar el .env"
           : "Impresora sin configurar (.env)";
+        if (data.env_file) {
+          chip.title = "Copia aquí el fichero .env: " + data.env_file +
+            "  (lleva PRINTER_SERIAL y PRINTER_CHECK_CODE)";
+        }
         return;
       }
       if (!data.online) {
