@@ -5,6 +5,7 @@ this is not something to expose to a network.
 """
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any
 
@@ -477,6 +478,95 @@ def api_cola_auto(request: AutoRequest):
 def api_cola_clean():
     cola.clear_finished()
     return {"cola": cola.snapshot()}
+
+
+class LimpiarRequest(BaseModel):
+    dias: int = 7
+
+
+def _en_la_cola(nombre: str) -> bool:
+    """¿Hay un trabajo pendiente que use este fichero?"""
+    for trabajo in cola.snapshot():
+        # «hecho» y «error» ya no esperan nada: esos sí se pueden borrar.
+        if trabajo.get("file") == nombre and trabajo.get("state") in {
+            "pendiente", "enviado",
+        }:
+            return True
+    return False
+
+
+def _lo_generado() -> list[Path]:
+    """Lo que hay en salida/, sin contar lo que es de la propia app."""
+    if not CONFIG.output_dir.is_dir():
+        return []
+    return sorted(
+        (p for p in CONFIG.output_dir.iterdir()
+         if p.is_file() and not p.name.startswith(".")),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+
+@app.get("/api/salida")
+def api_salida():
+    """Lo generado en este ordenador, para poder ir limpiando.
+
+    Lo de la impresora no se puede borrar por red: su API no tiene esa
+    función (probado contra la máquina: todas las rutas dan 404, incluida
+    una inventada de control). Eso se hace en su pantalla. Esto es lo otro,
+    que es lo que de verdad se acumula: cada pieza deja aquí su STL, su
+    g-code y su .3mf.
+    """
+    ahora = time.time()
+    ficheros = []
+    total = 0
+    for ruta in _lo_generado():
+        tam = ruta.stat().st_size
+        total += tam
+        ficheros.append({
+            "nombre": ruta.name,
+            "kb": tam // 1024,
+            "dias": int((ahora - ruta.stat().st_mtime) // 86400),
+            "en_cola": _en_la_cola(ruta.name),
+        })
+    return {"ficheros": ficheros, "total_mb": round(total / 1024 / 1024, 1)}
+
+
+@app.delete("/api/salida/{name}")
+def api_salida_borrar(name: str):
+    ruta = _safe_output(name)
+    if _en_la_cola(ruta.name):
+        raise HTTPException(400, f"«{ruta.name}» está en la cola; quítalo de ahí primero")
+    try:
+        ruta.unlink()
+    except OSError as exc:
+        raise HTTPException(400, f"No se ha podido borrar: {exc}") from exc
+    return {"borrado": ruta.name}
+
+
+@app.post("/api/salida/limpiar")
+def api_salida_limpiar(request: LimpiarRequest):
+    """Borra lo más viejo que los días pedidos. Con 0, todo."""
+    limite = time.time() - max(request.dias, 0) * 86400
+    borrados, liberado, intocables = 0, 0, 0
+    for ruta in _lo_generado():
+        if ruta.stat().st_mtime > limite:
+            continue
+        if _en_la_cola(ruta.name):
+            intocables += 1
+            continue
+        tam = ruta.stat().st_size
+        try:
+            ruta.unlink()
+        except OSError:
+            continue
+        borrados += 1
+        liberado += tam
+    return {
+        "borrados": borrados,
+        "mb": round(liberado / 1024 / 1024, 1),
+        "en_cola": intocables,
+    }
 
 
 @app.get("/salida/{name}")

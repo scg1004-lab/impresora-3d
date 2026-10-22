@@ -150,6 +150,25 @@
   <section>
     <h3>Guardados en la impresora</h3>
     <div id="t-almacenados" class="muted">—</div>
+    <p class="muted">
+      Estos se borran en la pantalla de la impresora: su conexión por red no
+      tiene forma de quitarlos.
+    </p>
+  </section>
+
+  <section>
+    <h3>Generados en este ordenador</h3>
+    <div id="t-salida-resumen" class="muted">—</div>
+    <div class="actions">
+      <select id="t-salida-dias">
+        <option value="30">de más de un mes</option>
+        <option value="7" selected>de más de una semana</option>
+        <option value="1">de más de un día</option>
+        <option value="0">todo</option>
+      </select>
+      <button id="t-salida-limpiar" class="button">Borrar</button>
+    </div>
+    <div id="t-salida-lista"></div>
   </section>
 </aside>
 

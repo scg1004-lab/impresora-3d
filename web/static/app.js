@@ -739,6 +739,92 @@
     });
   }
 
+
+  // ------------------------------------------------- lo generado aquí
+
+  // Cada pieza deja un STL, un g-code y a veces un .3mf. Se acumulan cientos
+  // sin que nadie los mire. Lo de la impresora no se puede borrar por red
+  // —su API no tiene esa función—, pero esto sí.
+  const MAX_LISTADOS = 40;
+
+  async function pintarSalida() {
+    const resumen = $("t-salida-resumen");
+    const lista = $("t-salida-lista");
+    if (!resumen || !lista) return;
+
+    let data;
+    try {
+      const r = await fetch("/api/salida");
+      data = await r.json();
+    } catch (error) {
+      resumen.textContent = "No se ha podido leer la carpeta.";
+      return;
+    }
+
+    const n = data.ficheros.length;
+    resumen.textContent = n
+      ? n + " ficheros, " + data.total_mb + " MB"
+      : "Nada guardado todavía.";
+
+    lista.replaceChildren();
+    data.ficheros.slice(0, MAX_LISTADOS).forEach((f) => {
+      const fila = document.createElement("div");
+      fila.className = "fila-fichero";
+
+      const nombre = document.createElement("code");
+      nombre.textContent = f.nombre;
+      nombre.title = f.kb + " KB · hace " + f.dias + " días";
+      fila.append(nombre);
+
+      const quitar = document.createElement("button");
+      quitar.className = "button button--mini";
+      quitar.textContent = "✕";
+      if (f.en_cola) {
+        quitar.disabled = true;
+        quitar.title = "Está en la cola; quítalo de ahí primero";
+      } else {
+        quitar.title = "Borrar " + f.nombre;
+        quitar.addEventListener("click", async () => {
+          if (!confirm("¿Borrar " + f.nombre + "?")) return;
+          const r = await fetch("/api/salida/" + encodeURIComponent(f.nombre), {
+            method: "DELETE",
+          });
+          if (!r.ok) {
+            const d = await r.json().catch(() => ({}));
+            say(d.detail || "No se ha podido borrar", "err");
+            return;
+          }
+          pintarSalida();
+        });
+      }
+      fila.append(quitar);
+      lista.append(fila);
+    });
+
+    if (n > MAX_LISTADOS) {
+      const resto = document.createElement("p");
+      resto.className = "muted";
+      resto.textContent = "y " + (n - MAX_LISTADOS) + " más";
+      lista.append(resto);
+    }
+  }
+
+  const limpiarSalida = $("t-salida-limpiar");
+  if (limpiarSalida) {
+    limpiarSalida.addEventListener("click", async () => {
+      const dias = Number($("t-salida-dias").value);
+      const que = dias
+        ? "lo generado hace más de " + dias + " día(s)"
+        : "TODO lo generado";
+      if (!confirm("¿Borrar " + que + "? No se puede deshacer.")) return;
+      const data = await call("/api/salida/limpiar", { dias });
+      let aviso = data.borrados + " borrados, " + data.mb + " MB libres";
+      if (data.en_cola) aviso += " (" + data.en_cola + " en la cola, intactos)";
+      say(aviso, "ok");
+      pintarSalida();
+    });
+  }
+
   function pintarAlmacenados(data) {
     const caja = $("t-almacenados");
     caja.replaceChildren();
@@ -759,6 +845,7 @@
       pintarActual(data);
       pintarCola(data);
       pintarAlmacenados(data);
+    pintarSalida();
       $("t-auto").checked = data.auto;
     } catch {
       $("t-actual-cuerpo").textContent = "No se ha podido consultar.";

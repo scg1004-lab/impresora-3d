@@ -249,6 +249,31 @@ verdad.
 El progreso se mide **por capas**, no por el `printProgress` de la impresora,
 que va muy retrasado: marcaba 0,4 % cuando iba por la capa 22 de 72.
 
+## Ir limpiando
+
+Cada pieza deja aquí su rastro: el STL, el g-code y, si es de dos colores, el
+proyecto `.3mf`. En un par de semanas de uso real la carpeta `salida/` pasa de
+250 ficheros y 700 MB sin que nadie se dé cuenta. En «Trabajos» hay ahora un
+bloque para vaciarla: borrar uno suelto, o de golpe lo de más de un día, una
+semana o un mes.
+
+Dos cosas que no se tocan: lo que esté en la cola esperando turno, y lo que
+empiece por punto, que es de la propia app (la cola, la última IP conocida).
+
+**Lo que está guardado EN LA IMPRESORA no se puede borrar desde aquí.** No es
+que falte implementarlo: la API HTTP de la AD5X no tiene esa función. Se
+probaron seis nombres plausibles —`/deleteGcode`, `/gcodeDelete`,
+`/deleteFile`, `/removeGcode`, `/fileDelete`, `/delete`— contra la máquina, y
+los seis contestan 404; también lo contesta una ruta inventada a propósito
+como control, así que no es que falte el nombre, es que no existe la función.
+La documentación de la comunidad dice lo mismo. Eso se hace en la pantalla de
+la impresora, y la app lo dice en esa lista para que nadie busque un botón que
+no puede existir.
+
+Para sondear eso no hace falta arriesgar un fichero: se pregunta por uno que
+no existe. Si el endpoint estuviera, contestaría «no encuentro ese fichero»;
+al contestar lo mismo que una ruta inventada, queda claro que no está.
+
 ## Elegir el color
 
 La impresora dice qué bobina hay en cada bahía del IFS (`matlStationInfo` en

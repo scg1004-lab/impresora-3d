@@ -204,3 +204,23 @@ code { font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
 .t-dato span:last-child { color: var(--ink); }
 .t-dato span:first-child { color: var(--muted); }
 #t-almacenados code { display: block; font-size: 12px; padding: 2px 0; color: #c3c8d2; }
+
+
+/* Una línea por fichero generado, con su botón de quitar al final. */
+.fila-fichero {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  justify-content: space-between;
+  padding: .15rem 0;
+}
+.fila-fichero code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.button--mini {
+  padding: .1rem .45rem;
+  font-size: .85em;
+  line-height: 1.4;
+}
