@@ -409,11 +409,20 @@ class Printer:
                 raise PrinterError(f"No se pudo empaquetar el G-code: {exc}") from exc
 
         level = self.config.leveling_before_print if leveling is None else leveling
+
+        # Con color elegido, la impresión va en dos pasos: primero subir sin
+        # arrancar y después /printGcode con el mapeo. El mapeo que viaja en
+        # la cabecera de la subida el firmware solo lo registra, y a la hora
+        # de la verdad imprime por la bahía que coincide con el número de
+        # filamento del laminador —la 1, siempre—. Por /printGcode sí lo
+        # aplica, y además vale para cualquier fichero ya guardado.
+        en_dos_pasos = bool(print_now and mappings)
+
         headers = {
             **self._auth,
             "fileSize": str(path.stat().st_size),
             # The spec is explicit: these go as lowercase string booleans.
-            "printNow": "true" if print_now else "false",
+            "printNow": "false" if en_dos_pasos else ("true" if print_now else "false"),
             "levelingBeforePrint": "true" if level else "false",
         }
 
@@ -459,10 +468,13 @@ class Printer:
         # before saying anything is wrong.
         for attempt in range(LISTING_RETRIES):
             try:
-                if path.name in self.files():
-                    return path.name
+                listado = path.name in self.files()
             except PrinterError:
-                return path.name  # the listing failed, not the upload
+                listado = True  # the listing failed, not the upload
+            if listado:
+                if en_dos_pasos:
+                    self.print_file(path.name, leveling=level, mappings=mappings)
+                return path.name
             if attempt < LISTING_RETRIES - 1:
                 time.sleep(LISTING_RETRY_WAIT)
 
