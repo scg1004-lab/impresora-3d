@@ -399,8 +399,12 @@ class Printer:
         # The printer swallows a bare .gcode but takes minutes to index it, if
         # it ever does; the same job inside a .3mf appears in seconds.
         if path.suffix.lower() == ".gcode":
+            # Los canales elegidos van DENTRO del .3mf: la impresora hace caso
+            # a lo que lleva el fichero, no a la cabecera de la subida. Sin
+            # esto, todo salia del canal 1 eligieras lo que eligieras.
+            canales = [int(m["slotId"]) for m in mappings] if mappings else None
             try:
-                path = gcode_to_3mf(path)
+                path = gcode_to_3mf(path, slots=canales)
             except OSError as exc:
                 raise PrinterError(f"No se pudo empaquetar el G-code: {exc}") from exc
 
