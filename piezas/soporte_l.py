@@ -14,7 +14,7 @@ PARAMS = [
     Param("arm_a", "Brazo vertical", 60.0, minimum=15, maximum=200),
     Param("arm_b", "Brazo horizontal", 60.0, minimum=15, maximum=200),
     Param("width", "Anchura", 30.0, minimum=8, maximum=200),
-    Param("thickness", "Espesor", 5.0, minimum=1.6, maximum=20, step=0.5),
+    Param("thickness", "Espesor", 5.0, minimum=1.5, maximum=20, step=0.5),
     Param("hole", "Diámetro de agujero", 4.5, minimum=0, maximum=20, step=0.1),
     Param("hole_inset", "Distancia del agujero al extremo", 12.0, minimum=4, maximum=100),
     Param("holes_per_arm", "Agujeros por brazo", 1, unit="", minimum=0, maximum=4, step=1),

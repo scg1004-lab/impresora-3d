@@ -42,7 +42,7 @@ PARAMS = [
     Param("relieve", "Altura del relieve", 0.8, minimum=0.2, maximum=4, step=0.1),
     Param("grabado", "Letras grabadas en hueco", False),
     Param("anilla", "Agujero de la anilla", 4.0, minimum=2, maximum=12, step=0.5),
-    Param("aro", "Grosor del aro alrededor del agujero", 2.5, minimum=1.2, maximum=8, step=0.5),
+    Param("aro", "Grosor del aro alrededor del agujero", 2.5, minimum=1.0, maximum=8, step=0.5),
     Param("dos_colores", "Letras de otro color", False),
 ]
 

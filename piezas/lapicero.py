@@ -26,7 +26,7 @@ PARAMS = [
     Param("lado", "Ancho (o diámetro)", 80.0, minimum=40, maximum=160),
     Param("alto", "Altura", 100.0, minimum=40, maximum=200),
     Param("pared", "Espesor de pared", 2.4, minimum=1.2, maximum=8, step=0.2),
-    Param("fondo", "Espesor del fondo", 4.0, minimum=1.6, maximum=15, step=0.5),
+    Param("fondo", "Espesor del fondo", 4.0, minimum=1.5, maximum=15, step=0.5),
     Param("esquina", "Radio de esquina", 8.0, minimum=0, maximum=40,
           help="Solo en el cuadrado"),
     Param("tamano_letra", "Tamaño de letra", 28.0, minimum=6, maximum=90),

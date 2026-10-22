@@ -10,6 +10,7 @@
                         // multicolour project when the part has one
   let sliced = null;    // last sliced file
   let mappings = null;  // IFS channel map for a multi-colour job
+  let ultimoCanal = null;  // el canal elegido, que sobrevive a laminar
 
   // ---------------------------------------------------------------- viewer
 
@@ -415,13 +416,17 @@
         : "Elige la bobina. Se imprime entera de ese color.";
 
       const tool = info.tools && info.tools[0];
+      const recordado = disponibles.some(
+        (s) => s.slot_id === ultimoCanal && s.loaded) ? ultimoCanal : null;
       const current = (mappings && mappings[0] && mappings[0].slotId) ||
+        recordado ||
         (disponibles.find((s) => s.loaded) || { slot_id: 1 }).slot_id;
       mappings = [mappingFor(0, current, tool)];
 
       const box = document.createElement("div");
       box.className = "swatches";
       const pick = (slotId) => {
+        ultimoCanal = slotId;
         mappings = [mappingFor(0, slotId, tool)];
         renderIfs(info);
       };
@@ -511,7 +516,12 @@
   async function loadGcodeInfo(file) {
     try {
       const info = await call("/api/gcode-info", { file });
-      mappings = null;  // a new file starts with a fresh choice
+      // Se recuerda el canal elegido. Antes se ponia a null «para empezar de
+      // cero», y empezar de cero es el canal 1: como laminar se dispara solo
+      // al generar, elegir el color un segundo antes de tiempo lo perdia sin
+      // avisar. Eliges azul y sale verde.
+      ultimoCanal = (mappings && mappings[0] && mappings[0].slotId) || ultimoCanal;
+      mappings = null;
       renderIfs(info);
       return info;
     } catch (error) {

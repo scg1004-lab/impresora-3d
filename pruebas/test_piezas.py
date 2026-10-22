@@ -112,6 +112,25 @@ def revisar(etiqueta: str, resultado, trozos: int, varias_partes: bool) -> None:
             fallos.append(f"{etiqueta}: {largo:.0f} mm en {eje}, no cabe en la cama")
 
 
+def _rejilla(pieza, slug: str) -> None:
+    """El navegador valida los números como min + n*paso.
+
+    Un valor por defecto que no caiga en esa rejilla bloquea el formulario:
+    sale «los dos valores más próximos son 2,2 y 2,7» y de ahí no pasa. El
+    fallo no está en el código de la pieza, así que no lo caza nada más.
+    """
+    for p in pieza.params:
+        if p.kind != "number" or p.minimum is None:
+            continue
+        paso = p.step or 1
+        resto = (float(p.default) - float(p.minimum)) % paso
+        if min(resto, paso - resto) > 1e-9:
+            fallos.append(
+                f"{slug}: «{p.name}» vale {p.default} por defecto, pero con "
+                f"mínimo {p.minimum} y paso {paso} el navegador no lo acepta"
+            )
+
+
 def main() -> int:
     partes, rotas = discover(PIEZAS)
     for slug, error in rotas.items():
@@ -119,6 +138,7 @@ def main() -> int:
 
     print(f"{len(partes)} piezas en el catálogo\n")
     for slug, pieza in sorted(partes.items()):
+        _rejilla(pieza, slug)
         for extra in [{}] + VARIANTES.get(slug, []):
             extra = dict(extra)
             trozos = extra.pop("_trozos", None)
