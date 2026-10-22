@@ -54,13 +54,29 @@ class Config:
         return self.system_profiles is not None
 
 
-# Cómo se llama el ejecutable, según quién lo haya empaquetado.
+# Cómo se llama el ejecutable, según quién lo haya empaquetado y en qué año.
 NOMBRES_ORCA = (
     "orca-flashforge.exe",
     "orca-slicer.exe",
     "orca-slicer-console.exe",
     "OrcaSlicer.exe",
     "orca_flashforge.exe",
+    "flash-studio.exe",
+    "flashstudio.exe",
+    "Flash Studio.exe",
+    "FlashStudioDesktop.exe",
+)
+
+# Palabras que delatan al programa en el nombre de una carpeta o en la lista
+# de programas instalados. Flashforge le cambió el nombre de «Orca-Flashforge»
+# a «Flash Studio Desktop», así que buscar solo «orca» deja de encontrarlo en
+# cuanto alguien actualiza.
+PISTAS = ("orca", "flashforge", "flash studio", "flashstudio", "flash-studio")
+
+# Ejecutables que acompañan a cualquier instalación y no son el programa.
+ACOMPANANTES = (
+    "unins", "setup", "install", "update", "crashpad", "vcredist",
+    "vc_redist", "7z", "python", "helper", "report", "launcher",
 )
 
 # Dónde se ha mirado, para poder contarlo cuando no aparece.
@@ -100,7 +116,7 @@ def _del_registro() -> list[Path]:
                         with winreg.OpenKey(clave, nombre) as programa:
                             titulo = str(
                                 winreg.QueryValueEx(programa, "DisplayName")[0])
-                            if "orca" not in titulo.lower():
+                            if not any(p in titulo.lower() for p in PISTAS):
                                 continue
                             try:
                                 sitio = winreg.QueryValueEx(
@@ -137,12 +153,59 @@ def _del_registro() -> list[Path]:
 
 
 def _exe_dentro(carpeta: Path) -> Path | None:
-    """El ejecutable de Orca dentro de una carpeta de instalación."""
+    """El ejecutable del laminador dentro de una carpeta de instalación.
+
+    Primero por nombre, que es lo barato. Y si no, por una seña que no
+    depende de cómo decidan llamarlo: al lado lleva siempre su carpeta
+    `resources/profiles`. Dentro de una carpeta así, el programa es el
+    ejecutable más grande que no sea un acompañante (desinstalador,
+    actualizador, el informe de fallos…).
+
+    Esto no es rebuscamiento: «Orca-Flashforge» pasó a llamarse «Flash
+    Studio Desktop» y una lista de nombres se quedó corta de un día para
+    otro, en un ordenador que no es el mío.
+    """
     for nombre in NOMBRES_ORCA:
         candidato = carpeta / nombre
         if candidato.is_file():
             return candidato
-    return None
+
+    if not (carpeta / "resources" / "profiles").is_dir():
+        return None
+    try:
+        sueltos = [
+            exe for exe in carpeta.glob("*.exe")
+            if not any(a in exe.name.lower() for a in ACOMPANANTES)
+        ]
+    except OSError:
+        return None
+    if not sueltos:
+        return None
+    return max(sueltos, key=lambda exe: exe.stat().st_size)
+
+
+def _del_fabricante() -> list[Path]:
+    """Las carpetas que cuelgan de la del fabricante.
+
+    `C:\\Program Files\\Flashforge\\<lo que sea>`: así da igual cómo
+    bauticen la próxima versión, mientras la dejen donde siempre.
+    """
+    carpetas: list[Path] = []
+    for raiz in (
+        Path(os.getenv("PROGRAMFILES", r"C:\Program Files")),
+        Path(os.getenv("PROGRAMFILES(X86)", r"C:\Program Files (x86)")),
+        Path(os.getenv("LOCALAPPDATA", "")) / "Programs",
+    ):
+        for marca in ("Flashforge", "FlashForge", "Orca"):
+            vendedor = raiz / marca
+            if not vendedor.is_dir():
+                continue
+            carpetas.append(vendedor)
+            try:
+                carpetas.extend(h for h in vendedor.iterdir() if h.is_dir())
+            except OSError:
+                continue
+    return carpetas
 
 
 def _rebuscar() -> Path | None:
@@ -165,7 +228,8 @@ def _rebuscar() -> Path | None:
         for hondura in ("*", "*/*", "*/*/*"):
             try:
                 for carpeta in raiz.glob(hondura):
-                    if not carpeta.is_dir() or "orca" not in carpeta.name.lower():
+                    nombre = carpeta.name.lower()
+                    if not carpeta.is_dir() or not any(p in nombre for p in PISTAS):
                         continue
                     exe = _exe_dentro(carpeta)
                     if exe:
@@ -193,7 +257,14 @@ def _find_slicer() -> Path | None:
         if exe:
             return exe
 
-    # 2) Los sitios de siempre, que son los más rápidos de mirar.
+    # 2) Lo que cuelgue de la carpeta del fabricante, se llame como se llame.
+    for carpeta in _del_fabricante():
+        BUSCADO.append(str(carpeta))
+        exe = _exe_dentro(carpeta)
+        if exe:
+            return exe
+
+    # 3) Los sitios de siempre, que son los más rápidos de mirar.
     program_files = Path(os.getenv("PROGRAMFILES", r"C:\Program Files"))
     program_files_x86 = Path(os.getenv("PROGRAMFILES(X86)", r"C:\Program Files (x86)"))
     local_programs = Path(os.getenv("LOCALAPPDATA", "")) / "Programs"
@@ -211,7 +282,7 @@ def _find_slicer() -> Path | None:
         if exe:
             return exe
 
-    # 3) Y si sigue sin aparecer, rebuscar en las carpetas de programas.
+    # 4) Y si sigue sin aparecer, rebuscar en las carpetas de programas.
     return _rebuscar()
 
 
