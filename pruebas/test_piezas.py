@@ -46,6 +46,18 @@ VARIANTES: dict[str, list[dict]] = {
         {"sello": True, "texto": "S", "dos_colores": True},
     ],
     "caja": [{"with_lid": False}, {"dos_colores": True}],
+    "soporte_cascos": [
+        {"forma": "Bajo la mesa"},
+        {"forma": "Bajo la mesa", "hueco": 60.0, "caida": 15.0, "grueso": 25.0},
+        {"altura": 215.0, "cuna": 140.0, "hueco": 60.0},
+    ],
+    "lapicero": [
+        {"forma": "Redondo"},
+        {"forma": "Redondo", "separador": True},
+        {"separador": True, "grabado": True},
+        {"dos_colores": True},
+        {"texto": "A", "lado": 40.0, "tamano_letra": 90.0},
+    ],
     "placa_texto": [{"engraved": True}, {"dos_colores": True}],
 }
 
@@ -87,6 +99,11 @@ def revisar(etiqueta: str, resultado, trozos: int, varias_partes: bool) -> None:
                 f"{etiqueta}: {_solidos(forma)} cuerpos sueltos, se esperaban {trozos}"
             )
 
+    # Un sólido inválido se construye igual, se ve bien en el visor y revienta
+    # al laminar con «no layers were detected», que no dice nada de dónde está
+    # el problema. Pasó con un perfil de diez puntos dibujado de una tirada.
+    if not forma.isValid():
+        fallos.append(f"{etiqueta}: el sólido no es válido, no se podrá laminar")
     if forma.Volume() <= 0:
         fallos.append(f"{etiqueta}: volumen cero")
     caja = forma.BoundingBox()

@@ -179,6 +179,56 @@ plano XY a una cara vertical **no basta con girarlo 90° sobre X**. Esa sola
 rotación lo deja cabeza abajo, y la que lo endereza lo deja en espejo. La
 buena es girar 90° sobre X y después 180° sobre Z.
 
+## Soporte de cascos y lapicero
+
+Dos piezas grandes, y con las piezas grandes el tiempo manda: lo que aquí se
+decide no es la forma, es cuántas horas tarda.
+
+**El soporte de cascos** (`piezas/soporte_cascos.py`) va de dos maneras. El de
+mesa es una torre con la cuna arriba: **5 h 40 y 80 g** a 180 mm de alto. El de
+bajo la mesa es un gancho que se pega al tablero con cinta de doble cara:
+**2 h 20 y 29 g**. El segundo es el que de verdad se usa.
+
+La diadema apoya en una **cuna cóncava**, no en un gancho estrecho: un gancho
+fino marca la espuma si los cascos duermen ahí todas las noches. El hueco se
+talla con un cilindro tumbado a lo largo de Y, para que la curva corra a lo
+ancho de la cuna. Con el eje en X —que es como salió a la primera— la curva
+sale cruzada, se come la pieza a lo alto y no sujeta nada.
+
+Nada de esto lleva soportes, y no por suerte: el ensanche entre la columna y
+la cuna es un *loft* cuyo tramo vertical mide lo mismo que lo que crece a cada
+lado, así que el vuelo queda clavado en 45°. Y el gancho se extruye hacia
+arriba desde su perfil tumbado en la cama, con lo que todas las capas son
+iguales.
+
+El ancho del gancho se limita a 45 mm aunque pidas una cuna más ancha. Ese
+ancho se imprime en vertical: a 80 mm son cuatro horas en vez de dos, y la
+diadema apoya exactamente igual.
+
+**El lapicero** (`piezas/lapicero.py`), cuadrado o redondo, con las iniciales
+en relieve o grabadas. El fondo va más grueso que la pared a propósito: es lo
+que le da peso para que no se vuelque al sacar un boli de un tirón.
+
+El redondo **no lleva las letras sobre la curva**, sino sobre una cara plana
+que recorre el bote de arriba abajo, por fuera y por dentro, de modo que la
+pared mide lo mismo en todo el contorno. Antes de llegar ahí se probaron las
+dos salidas fáciles y las dos están mal: un rebaje plano que no atraviese una
+pared de 2,4 mm deja una cara de dos centímetros escasos, donde no caben tres
+iniciales; y una plaquita pegada por fuera queda volando por los lados, porque
+el cilindro se va curvando y solo la sujeta por el centro.
+
+### El fallo que no se ve hasta que laminas
+
+El gancho se dibujó primero como una polilínea de diez puntos extruida de una
+vez. Se construía, se veía perfecto en el visor, y Orca lo rechazaba con
+**«No layers were detected»**, que no dice dónde está el problema. El sólido
+era inválido: `isValid()` en `False`, doce caras y los tapones sin triangular.
+
+Se rehízo como unión de cuatro cajas —pletina, bajada, brazo y pico—, que no
+tiene forma de salir mal. Y `pruebas/test_piezas.py` comprueba ahora
+`isValid()` en todas las piezas, que es el único sitio donde esto se caza
+antes de perder un laminado.
+
 ## Trabajos y cola
 
 El botón **Trabajos** de la cabecera abre un panel con tres cosas: lo que la
@@ -213,8 +263,8 @@ laminar para cambiar de color — basta con elegir otra bobina y enviar.
 
 Una pieza del catálogo puede devolver **partes con nombre** en vez de un solo
 sólido, y entonces cada una se imprime con su bobina. Lo hacen la **caja**
-(cuerpo y tapa), la **placa con texto**, el **llavero** y el **anillo** (la
-pieza y sus letras), marcando la casilla correspondiente. En la web aparecen luego en «Canales del IFS», una fila por
+(cuerpo y tapa), la **placa con texto**, el **llavero**, el **anillo** y el
+**lapicero** (la pieza y sus letras), marcando la casilla correspondiente. En la web aparecen luego en «Canales del IFS», una fila por
 parte, para decir en qué bahía está cada color.
 
 Costó dar con la receta, y conviene dejarla escrita:
