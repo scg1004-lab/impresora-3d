@@ -87,9 +87,20 @@
       {% endif %}
       {% if not slicer_ready %}
       <div class="alert alert--warn">
-        <strong>Falta Orca en este ordenador.</strong> Puedes diseñar piezas y
-        descargar el .stl, pero no prepararlas para imprimir. Instala
-        Orca-Flashforge y el botón «Laminar» se activará solo.
+        <strong>No encuentro Orca en este ordenador.</strong> Puedes diseñar
+        piezas y descargar el .stl, pero no prepararlas para imprimir.
+        Si no lo tienes, instala Orca-Flashforge y el botón «Laminar» se
+        activará solo al volver a abrir el programa.
+        {% if slicer_searched %}
+        <details>
+          <summary>Si lo tienes instalado, mira aquí</summary>
+          <p>He preguntado a Windows por los programas instalados y he mirado
+          en estos sitios:</p>
+          <ul>{% for sitio in slicer_searched %}<li><code>{{ sitio }}</code></li>{% endfor %}</ul>
+          <p>Si está en otro sitio, dime la ruta del
+          <code>orca-flashforge.exe</code> y lo arreglo.</p>
+        </details>
+        {% endif %}
       </div>
       {% endif %}
       <div id="ifs" hidden>

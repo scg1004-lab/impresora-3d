@@ -218,9 +218,11 @@ def slice_stl(
     output_dir: Path | None = None,
 ) -> Sliced:
     if not config.slicer_available:
+        from .config import BUSCADO
+        donde = "; ".join(BUSCADO) or "ningún sitio"
         raise SlicerError(
             "No se ha encontrado Orca. Instala Orca-Flashforge, o apunta "
-            "SLICER_EXE en el .env al ejecutable."
+            "SLICER_EXE en el .env al ejecutable. Se ha buscado en: " + donde
         )
 
     assert config.slicer_exe is not None  # narrowed by slicer_available

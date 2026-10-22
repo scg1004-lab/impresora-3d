@@ -17,7 +17,7 @@ from starlette.requests import Request
 
 from .cad import build_part
 from .catalog import discover as discover_parts
-from .config import CONFIG
+from .config import BUSCADO, CONFIG
 from .gcode import default_mappings, is_sliced, read_info
 from .mesh import MeshError, threemf_to_stl
 from .cola import Cola, Despachador
@@ -157,6 +157,9 @@ def index(request: Request):
             "broken": broken,
             "v": _assets_version(),
             "slicer_ready": CONFIG.slicer_available,
+            # Para poder decir donde se ha buscado cuando no aparece:
+            # «no lo encuentro» a secas no se puede arreglar a distancia.
+            "slicer_searched": [] if CONFIG.slicer_available else BUSCADO,
             "options": list_options(CONFIG),
             "default_material": DEFAULT_MATERIAL,
             "default_quality": DEFAULT_QUALITY,

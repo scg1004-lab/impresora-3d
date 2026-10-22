@@ -54,32 +54,165 @@ class Config:
         return self.system_profiles is not None
 
 
+# Cómo se llama el ejecutable, según quién lo haya empaquetado.
+NOMBRES_ORCA = (
+    "orca-flashforge.exe",
+    "orca-slicer.exe",
+    "orca-slicer-console.exe",
+    "OrcaSlicer.exe",
+    "orca_flashforge.exe",
+)
+
+# Dónde se ha mirado, para poder contarlo cuando no aparece.
+BUSCADO: list[str] = []
+
+
+def _del_registro() -> list[Path]:
+    """Lo que Windows sabe de dónde se instaló. Es la fuente fiable.
+
+    Las rutas fijas son una apuesta: valen en el ordenador donde se probó y
+    fallan en el siguiente. El instalador, en cambio, deja escrito dónde
+    puso las cosas, y eso vale en cualquiera.
+    """
+    if os.name != "nt":
+        return []
+    try:
+        import winreg
+    except ImportError:
+        return []
+
+    encontrados: list[Path] = []
+    ramas = [
+        (winreg.HKEY_LOCAL_MACHINE,
+         r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+        (winreg.HKEY_LOCAL_MACHINE,
+         r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
+        (winreg.HKEY_CURRENT_USER,
+         r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+    ]
+    for raiz, camino in ramas:
+        try:
+            with winreg.OpenKey(raiz, camino) as clave:
+                total = winreg.QueryInfoKey(clave)[0]
+                for indice in range(total):
+                    try:
+                        nombre = winreg.EnumKey(clave, indice)
+                        with winreg.OpenKey(clave, nombre) as programa:
+                            titulo = str(
+                                winreg.QueryValueEx(programa, "DisplayName")[0])
+                            if "orca" not in titulo.lower():
+                                continue
+                            try:
+                                sitio = winreg.QueryValueEx(
+                                    programa, "InstallLocation")[0]
+                            except OSError:
+                                sitio = ""
+                            if sitio:
+                                encontrados.append(Path(sitio))
+                            try:
+                                icono = str(winreg.QueryValueEx(
+                                    programa, "DisplayIcon")[0]).split(",")[0]
+                            except OSError:
+                                icono = ""
+                            if icono.lower().endswith(".exe"):
+                                encontrados.append(Path(icono).parent)
+                    except OSError:
+                        continue
+        except OSError:
+            continue
+
+    # Y el registro de rutas de aplicaciones, por si el instalador lo puso.
+    for nombre in NOMBRES_ORCA:
+        for raiz in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+            try:
+                camino = (r"SOFTWARE\Microsoft\Windows\CurrentVersion"
+                          "\\App Paths\\" + nombre)
+                with winreg.OpenKey(raiz, camino) as clave:
+                    valor = str(winreg.QueryValueEx(clave, "")[0]).strip('"')
+                    if valor:
+                        encontrados.append(Path(valor).parent)
+            except OSError:
+                continue
+    return encontrados
+
+
+def _exe_dentro(carpeta: Path) -> Path | None:
+    """El ejecutable de Orca dentro de una carpeta de instalación."""
+    for nombre in NOMBRES_ORCA:
+        candidato = carpeta / nombre
+        if candidato.is_file():
+            return candidato
+    return None
+
+
+def _rebuscar() -> Path | None:
+    """Último recurso: mirar dentro de las carpetas de programas.
+
+    Acotado a tres niveles. Barrer el disco entero tardaría minutos y esto
+    corre en cada arranque.
+    """
+    raices = [
+        Path(os.getenv("PROGRAMFILES", r"C:\Program Files")),
+        Path(os.getenv("PROGRAMFILES(X86)", r"C:\Program Files (x86)")),
+        Path(os.getenv("LOCALAPPDATA", "")) / "Programs",
+        Path(os.getenv("APPDATA", "")) / "Local" / "Programs",
+        Path.home() / "Desktop",
+    ]
+    for raiz in raices:
+        if not raiz.is_dir():
+            continue
+        BUSCADO.append(str(raiz))
+        for hondura in ("*", "*/*", "*/*/*"):
+            try:
+                for carpeta in raiz.glob(hondura):
+                    if not carpeta.is_dir() or "orca" not in carpeta.name.lower():
+                        continue
+                    exe = _exe_dentro(carpeta)
+                    if exe:
+                        return exe
+            except OSError:
+                continue
+    return None
+
+
 def _find_slicer() -> Path | None:
-    """Locate the Orca binary, preferring an explicit override."""
+    """Localiza el ejecutable de Orca, mirando donde haga falta."""
+    BUSCADO.clear()
+
     override = os.getenv("SLICER_EXE")
     if override:
-        candidate = Path(override)
-        return candidate if candidate.is_file() else None
+        BUSCADO.append(f"SLICER_EXE del .env: {override}")
+        candidato = Path(override)
+        return candidato if candidato.is_file() else None
 
+    # 1) Lo que dice Windows que se instaló. Es lo que funciona en un
+    #    ordenador que no es el tuyo.
+    for carpeta in _del_registro():
+        BUSCADO.append(str(carpeta))
+        exe = _exe_dentro(carpeta)
+        if exe:
+            return exe
+
+    # 2) Los sitios de siempre, que son los más rápidos de mirar.
     program_files = Path(os.getenv("PROGRAMFILES", r"C:\Program Files"))
     program_files_x86 = Path(os.getenv("PROGRAMFILES(X86)", r"C:\Program Files (x86)"))
     local_programs = Path(os.getenv("LOCALAPPDATA", "")) / "Programs"
+    for carpeta in (
+        program_files / "Flashforge" / "Orca-Flashforge",
+        local_programs / "Flashforge" / "Orca-Flashforge",
+        program_files / "Orca-Flashforge",
+        local_programs / "Orca-Flashforge",
+        program_files / "OrcaSlicer",
+        program_files_x86 / "OrcaSlicer",
+        local_programs / "OrcaSlicer",
+    ):
+        BUSCADO.append(str(carpeta))
+        exe = _exe_dentro(carpeta)
+        if exe:
+            return exe
 
-    # Known layouts, most specific first. Orca-Flashforge installs one level
-    # deeper than upstream OrcaSlicer does.
-    candidates = [
-        program_files / "Flashforge" / "Orca-Flashforge" / "orca-flashforge.exe",
-        local_programs / "Flashforge" / "Orca-Flashforge" / "orca-flashforge.exe",
-        program_files / "Orca-Flashforge" / "orca-flashforge.exe",
-        program_files / "OrcaSlicer" / "orca-slicer-console.exe",
-        program_files / "OrcaSlicer" / "orca-slicer.exe",
-        program_files_x86 / "OrcaSlicer" / "orca-slicer.exe",
-        local_programs / "OrcaSlicer" / "orca-slicer.exe",
-    ]
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
-    return None
+    # 3) Y si sigue sin aparecer, rebuscar en las carpetas de programas.
+    return _rebuscar()
 
 
 def _system_profiles(slicer_exe: Path | None) -> Path | None:
