@@ -534,6 +534,164 @@
     }
   }
 
+
+  // ------------------------------------------------- modelos de Thingiverse
+
+  // Se busca, se ve la miniatura y se trae el que guste. Lo que llega es
+  // geometría de otra gente: baja a salida/, nunca a piezas/, que es código
+  // que se ejecuta.
+
+  function tarjetaModelo(m, alElegir) {
+    const boton = document.createElement("button");
+    boton.className = "modelo";
+    boton.type = "button";
+
+    const foto = document.createElement("img");
+    foto.src = m.miniatura || "";
+    foto.alt = "";
+    foto.loading = "lazy";
+
+    const pie = document.createElement("div");
+    pie.className = "pie";
+    const titulo = document.createElement("strong");
+    titulo.textContent = m.nombre;
+    const autor = document.createElement("span");
+    autor.textContent = m.autor + (m.likes ? " · " + m.likes + " ♥" : "");
+    pie.append(titulo, autor);
+
+    boton.append(foto, pie);
+    boton.addEventListener("click", () => alElegir(m));
+    return boton;
+  }
+
+  async function buscarModelos() {
+    const caja = $("buscar-modelo");
+    if (!caja || !caja.value.trim()) return;
+
+    const galeria = $("galeria");
+    const rejilla = $("galeria-rejilla");
+    const ficheros = $("galeria-ficheros");
+    galeria.hidden = false;
+    ficheros.replaceChildren();
+    rejilla.replaceChildren();
+    rejilla.textContent = "Buscando…";
+
+    let data;
+    try {
+      const r = await fetch("/api/modelos/buscar?q=" + encodeURIComponent(caja.value.trim()));
+      data = await r.json();
+      if (!r.ok) throw new Error(data.detail || "No se ha podido buscar");
+    } catch (error) {
+      rejilla.textContent = error.message;
+      return;
+    }
+
+    rejilla.replaceChildren();
+    if (!data.modelos.length) {
+      rejilla.textContent = "Nada con ese nombre.";
+      return;
+    }
+    data.modelos.forEach((m) => rejilla.append(tarjetaModelo(m, verFicheros)));
+  }
+
+  async function verFicheros(modelo) {
+    const caja = $("galeria-ficheros");
+    caja.replaceChildren();
+    const titulo = document.createElement("h3");
+    titulo.textContent = modelo.nombre;
+    caja.append(titulo);
+
+    const enlace = document.createElement("p");
+    enlace.className = "muted";
+    const a = document.createElement("a");
+    a.href = modelo.enlace;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "Ver la ficha y su licencia en Thingiverse";
+    enlace.append(a);
+    caja.append(enlace);
+
+    const espera = document.createElement("p");
+    espera.className = "muted";
+    espera.textContent = "Mirando qué ficheros tiene…";
+    caja.append(espera);
+
+    let data;
+    try {
+      const r = await fetch("/api/modelos/" + modelo.id + "/ficheros");
+      data = await r.json();
+      if (!r.ok) throw new Error(data.detail || "No se han podido leer los ficheros");
+    } catch (error) {
+      espera.textContent = error.message;
+      return;
+    }
+
+    espera.remove();
+    if (!data.ficheros.length) {
+      caja.append(Object.assign(document.createElement("p"), {
+        className: "muted",
+        textContent: "Este modelo no trae ningún fichero que sepamos abrir.",
+      }));
+      return;
+    }
+
+    data.ficheros.forEach((f) => {
+      const fila = document.createElement("div");
+      fila.className = "fila-fichero";
+      const nombre = document.createElement("code");
+      nombre.textContent = f.nombre + " · " + f.kb + " KB";
+      const traer = document.createElement("button");
+      traer.className = "button button--mini";
+      traer.textContent = "Traer";
+      traer.addEventListener("click", () => traerModelo(modelo, f, traer));
+      fila.append(nombre, traer);
+      caja.append(fila);
+    });
+  }
+
+  async function traerModelo(modelo, fichero, boton) {
+    await withBusy(boton, "Bajando…", async () => {
+      const data = await call("/api/modelos/traer", {
+        modelo_id: modelo.id,
+        fichero_id: fichero.id,
+        titulo: modelo.nombre,
+      });
+
+      // A partir de aquí es un modelo traído como cualquier otro.
+      $("galeria").hidden = true;
+      $("result").hidden = false;
+      $("r-file").textContent = data.file;
+      $("a-download").href = "/salida/" + data.file;
+      $("a-download").textContent = "Descargar modelo";
+      $("warnings").replaceChildren();
+      stlFile = data.file;
+      sliceFile = data.file;
+      sliced = null;
+      mappings = null;
+      $("ifs").hidden = true;
+      $("r-size").textContent = "—";
+      $("r-volume").textContent = "—";
+      updateSendButtons();
+      if (data.file.toLowerCase().endsWith(".stl")) {
+        viewer.load("/salida/" + data.file);
+      }
+      say(data.file + " traído" + (data.note ? ", " + data.note : "") +
+          (window.SLICER_READY ? ". Calculando cuánto tarda…" : "."), "ok");
+      if (window.SLICER_READY) await laminar();
+    });
+  }
+
+  const irABuscar = $("buscar-modelo-ir");
+  if (irABuscar) {
+    irABuscar.addEventListener("click", buscarModelos);
+    $("buscar-modelo").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") buscarModelos();
+    });
+    $("cerrar-galeria").addEventListener("click", () => {
+      $("galeria").hidden = true;
+    });
+  }
+
   // ---------------------------------------------------------------- import
 
   $("import-file").addEventListener("change", async (event) => {

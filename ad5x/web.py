@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from starlette.requests import Request
 
+from . import modelos
 from .cad import build_part
 from .catalog import discover as discover_parts
 from .config import BUSCADO, CONFIG, ENV_PATH
@@ -165,6 +166,7 @@ def index(request: Request):
             "default_material": DEFAULT_MATERIAL,
             "default_quality": DEFAULT_QUALITY,
             "printer_ready": CONFIG.printer_configured,
+            "modelos_ready": modelos.hay_token(),
         },
     )
 
@@ -505,6 +507,82 @@ def _lo_generado() -> list[Path]:
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
+
+
+class TraerRequest(BaseModel):
+    modelo_id: int
+    fichero_id: int
+    titulo: str = ""
+
+
+@app.get("/api/modelos/buscar")
+def api_modelos_buscar(q: str = "", pagina: int = 1):
+    """Busca en Thingiverse. Sin token configurado, lo dice y ya está."""
+    if not modelos.hay_token():
+        return {"token": False, "modelos": []}
+    try:
+        encontrados = modelos.buscar(q, pagina)
+    except modelos.ModelosError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {
+        "token": True,
+        "modelos": [
+            {
+                "id": m.id,
+                "nombre": m.nombre,
+                "autor": m.autor,
+                "miniatura": m.miniatura,
+                "enlace": m.enlace,
+                "likes": m.likes,
+            }
+            for m in encontrados
+        ],
+    }
+
+
+@app.get("/api/modelos/{modelo_id}/ficheros")
+def api_modelos_ficheros(modelo_id: int):
+    try:
+        return {"ficheros": modelos.ficheros(modelo_id)}
+    except modelos.ModelosError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.post("/api/modelos/traer")
+def api_modelos_traer(request: TraerRequest):
+    """Baja el fichero a salida/ y lo deja listo para laminar.
+
+    Un 3MF de las webs de modelos suele venir escrito por un laminador más
+    nuevo que el nuestro, y Orca lo rechaza; la geometría de dentro sirve
+    igual, así que se saca a STL como ya se hace al traer un fichero a mano.
+    """
+    try:
+        ruta = modelos.traer(
+            request.modelo_id, request.fichero_id, request.titulo,
+            CONFIG.output_dir,
+        )
+    except modelos.ModelosError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    nota = None
+    if ruta.suffix.lower() == ".3mf" and not is_sliced(ruta):
+        stl = ruta.with_suffix(".stl")
+        try:
+            triangulos = threemf_to_stl(ruta, stl)
+        except Exception as exc:  # noqa: BLE001 - se explica, no se traga
+            raise HTTPException(
+                400, f"No se ha podido leer la geometría del 3MF: {exc}"
+            ) from exc
+        ruta.unlink(missing_ok=True)
+        ruta = stl
+        nota = f"convertido a STL ({triangulos:,} triángulos)".replace(",", ".")
+
+    return {
+        "file": ruta.name,
+        "size_kb": ruta.stat().st_size // 1024,
+        "kind": "model",
+        "note": nota,
+    }
 
 
 @app.get("/api/salida")

@@ -33,6 +33,12 @@
       <label class="button" for="import-file">Traer fichero</label>
       <input id="import-file" type="file"
              accept=".stl,.obj,.step,.stp,.gcode,.3mf,.gx" hidden>
+      {% if modelos_ready %}
+      <div class="buscador">
+        <input id="buscar-modelo" type="search" placeholder="o búscalo en Thingiverse">
+        <button id="buscar-modelo-ir" class="button">Buscar</button>
+      </div>
+      {% endif %}
     </div>
 
     {% if broken %}
@@ -120,6 +126,19 @@
     </div>
   </section>
 </main>
+
+<aside id="galeria" hidden>
+  <header>
+    <h2>Modelos de Thingiverse</h2>
+    <button id="cerrar-galeria" class="chip">Cerrar</button>
+  </header>
+  <p class="muted" id="galeria-aviso">
+    Son modelos de otra gente, con la licencia que haya puesto su autor.
+    Para imprimir en casa, sin problema.
+  </p>
+  <div id="galeria-rejilla"></div>
+  <div id="galeria-ficheros"></div>
+</aside>
 
 <aside id="trabajos" hidden>
   <header>
