@@ -15,6 +15,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
+from dataclasses import replace
 from unittest.mock import patch
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -23,6 +24,11 @@ sys.path.insert(0, str(RAIZ))
 import ad5x.modelos as mod  # noqa: E402
 
 fallos: list[str] = []
+
+
+def con_token(valor):
+    """CONFIG con (o sin) token. Es un dataclass congelado: se sustituye entero."""
+    return patch.object(mod, "CONFIG", replace(mod.CONFIG, thingiverse_token=valor))
 
 
 def mal(m: str) -> None:
@@ -68,7 +74,8 @@ def main() -> int:
         mal("sin título no sale un nombre usable")
 
     print("2. Sin token, se dice y no se intenta nada")
-    with patch.dict(os.environ, {"THINGIVERSE_TOKEN": ""}):
+    with patch.dict(os.environ, {"THINGIVERSE_TOKEN": ""}), \
+         con_token(None):
         if mod.hay_token():
             mal("dice que hay token cuando no lo hay")
         try:
@@ -82,6 +89,7 @@ def main() -> int:
     try:
         gordo = [b"x" * (1 << 20)] * (mod.TOPE // (1 << 20) + 3)
         with patch.dict(os.environ, {"THINGIVERSE_TOKEN": "falso"}), \
+             con_token("falso"), \
              patch.object(mod, "_pedir", return_value={
                  "name": "enorme.stl", "download_url": "https://ejemplo/x.stl"}), \
              patch.object(mod.requests, "get", return_value=Respuesta(gordo)):
@@ -98,6 +106,7 @@ def main() -> int:
 
         print("4. Solo se aceptan ficheros que sepamos abrir")
         with patch.dict(os.environ, {"THINGIVERSE_TOKEN": "falso"}), \
+             con_token("falso"), \
              patch.object(mod, "_pedir", return_value={
                  "name": "lee_me.exe", "download_url": "https://ejemplo/x.exe"}):
             try:
@@ -108,6 +117,7 @@ def main() -> int:
 
         print("5. Una descarga normal cae donde debe y con nuestro nombre")
         with patch.dict(os.environ, {"THINGIVERSE_TOKEN": "falso"}), \
+             con_token("falso"), \
              patch.object(mod, "_pedir", return_value={
                  "name": "pieza original.stl", "download_url": "https://ejemplo/x.stl"}), \
              patch.object(mod.requests, "get", return_value=Respuesta([b"solid\n"])):

@@ -45,6 +45,9 @@ class Config:
     slicer_exe: Path | None
     system_profiles: Path | None
 
+    # --- Buscar modelos en internet ----------------------------------------
+    thingiverse_token: str | None
+
     # --- Print defaults ----------------------------------------------------
     leveling_before_print: bool
 
@@ -317,6 +320,7 @@ def load() -> Config:
         printer_port=int(os.getenv("PRINTER_PORT", "8898")),
         slicer_exe=slicer_exe,
         system_profiles=_system_profiles(slicer_exe),
+        thingiverse_token=os.getenv("THINGIVERSE_TOKEN") or None,
         leveling_before_print=_flag("LEVELING_BEFORE_PRINT", False),
         parts_dir=ROOT / "piezas",
         output_dir=ROOT / "salida",

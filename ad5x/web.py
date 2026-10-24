@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -538,6 +538,17 @@ def api_modelos_buscar(q: str = "", pagina: int = 1):
             for m in encontrados
         ],
     }
+
+
+@app.get("/api/modelos/miniatura")
+def api_modelos_miniatura(url: str = ""):
+    try:
+        datos, tipo = modelos.miniatura(url)
+    except modelos.ModelosError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    # Son imágenes que no cambian: que el navegador no las vuelva a pedir.
+    return Response(content=datos, media_type=tipo,
+                    headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/api/modelos/{modelo_id}/ficheros")

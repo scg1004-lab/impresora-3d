@@ -36,6 +36,7 @@ def agujas() -> dict[str, str]:
         "el número de serie de la impresora": CONFIG.serial_number or "",
         "el check code de la impresora": CONFIG.check_code or "",
         "la IP de la impresora": CONFIG.printer_ip or "",
+        "el token de Thingiverse": CONFIG.thingiverse_token or "",
         "el usuario de Windows": os.environ.get("USERNAME", ""),
         "la ruta del disco de proyectos": str(RAIZ),
     }

@@ -74,6 +74,7 @@ def config(serial: str = SERIAL, ip: str | None = "192.168.1.250") -> Config:
         printer_port=PORT,
         slicer_exe=None,
         system_profiles=None,
+        thingiverse_token=None,
         leveling_before_print=False,
         parts_dir=Path("piezas"),
         output_dir=SALIDA,

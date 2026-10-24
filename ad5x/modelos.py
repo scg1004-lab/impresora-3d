@@ -28,6 +28,8 @@ from typing import Any
 
 import requests
 
+from .config import CONFIG
+
 API = "https://api.thingiverse.com"
 ESPERA = 20          # segundos para una búsqueda
 ESPERA_DESCARGA = 180
@@ -37,6 +39,12 @@ POR_PAGINA = 24
 # Lo que el laminador sabe abrir. El resto (imágenes, pdf, gcode de otra
 # máquina) no se ofrece.
 UTILES = (".stl", ".3mf", ".obj", ".step", ".stp")
+
+# De dónde se aceptan imágenes. Sin esta lista, la ruta que sirve las
+# miniaturas sería un proxy abierto: cualquiera que abriese la app podría
+# usarla para pedir lo que quisiera desde este ordenador.
+CDN = ("cdn.thingiverse.com", "thingiverse-production-new.s3.amazonaws.com")
+TOPE_IMAGEN = 8 * 1024 * 1024
 
 
 class ModelosError(RuntimeError):
@@ -54,11 +62,13 @@ class Modelo:
 
 
 def hay_token() -> bool:
-    return bool(os.getenv("THINGIVERSE_TOKEN"))
+    return bool(CONFIG.thingiverse_token or os.getenv("THINGIVERSE_TOKEN"))
 
 
 def _cabeceras() -> dict[str, str]:
-    token = os.getenv("THINGIVERSE_TOKEN")
+    # Por la configuración, que es quien lee el .env. Mirar solo el entorno
+    # hacía que el token dependiera de quién importara antes qué.
+    token = CONFIG.thingiverse_token or os.getenv("THINGIVERSE_TOKEN")
     if not token:
         raise ModelosError(
             "Falta el token de Thingiverse. Se saca registrando una aplicación "
@@ -128,6 +138,36 @@ def ficheros(modelo_id: int) -> list[dict[str, Any]]:
         if str(f.get("name") or "").lower().endswith(UTILES)
     ]
     return sorted(utiles, key=lambda f: f["kb"])
+
+
+def miniatura(url: str) -> tuple[bytes, str]:
+    """La imagen de un modelo, servida por nosotros.
+
+    El CDN de Thingiverse manda `Cross-Origin-Resource-Policy: same-origin`,
+    así que el navegador se niega a pintarla dentro de nuestra página. Se
+    trae aquí y se reenvía. Solo de los dominios de la lista: una ruta que
+    descargue cualquier dirección que le pasen es un proxy abierto.
+    """
+    from urllib.parse import urlsplit
+
+    trozos = urlsplit(url or "")
+    if trozos.scheme != "https" or trozos.hostname not in CDN:
+        raise ModelosError("Esa imagen no viene de Thingiverse")
+
+    try:
+        respuesta = requests.get(url, timeout=ESPERA, stream=True)
+        respuesta.raise_for_status()
+    except requests.RequestException as exc:
+        raise ModelosError(f"No se ha podido traer la miniatura: {exc}") from exc
+
+    tipo = respuesta.headers.get("Content-Type", "")
+    if not tipo.startswith("image/"):
+        raise ModelosError("Eso no es una imagen")
+
+    datos = respuesta.raw.read(TOPE_IMAGEN + 1, decode_content=True)
+    if len(datos) > TOPE_IMAGEN:
+        raise ModelosError("La miniatura pesa demasiado")
+    return datos, tipo
 
 
 def _nombre_seguro(titulo: str, sufijo: str) -> str:

@@ -547,7 +547,11 @@
     boton.type = "button";
 
     const foto = document.createElement("img");
-    foto.src = m.miniatura || "";
+    // Por nuestro servidor: el CDN de Thingiverse prohibe que la pinte
+    // otra pagina, y el navegador la bloquea con NotSameOrigin.
+    foto.src = m.miniatura
+      ? "/api/modelos/miniatura?url=" + encodeURIComponent(m.miniatura)
+      : "";
     foto.alt = "";
     foto.loading = "lazy";
 

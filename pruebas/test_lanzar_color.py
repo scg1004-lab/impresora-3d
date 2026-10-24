@@ -37,6 +37,7 @@ def configuracion(tmp: Path) -> Config:
     return Config(
         printer_ip="127.0.0.1", serial_number="SNTEST", check_code="abcd1234",
         printer_port=18999, slicer_exe=None, system_profiles=None,
+        thingiverse_token=None,
         leveling_before_print=False, parts_dir=RAIZ / "piezas",
         output_dir=tmp, profiles_dir=RAIZ / "perfiles",
     )
