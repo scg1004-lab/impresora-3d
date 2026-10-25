@@ -40,6 +40,10 @@ MAX_SLOTS = 4  # the IFS holds four spools
 
 # The printer takes a moment to index what it has just received.
 LISTING_RETRIES = 6
+# Recien subido un fichero la maquina tarda unos segundos en poder
+# arrancarlo: hasta entonces /printGcode contesta «Printer is Busy».
+INTENTOS_LANZAR = 6
+ESPERA_LANZAR = 5.0
 LISTING_RETRY_WAIT = 2.5
 _MAPPING_FIELDS = (
     "toolId",
@@ -473,7 +477,7 @@ class Printer:
                 listado = True  # the listing failed, not the upload
             if listado:
                 if en_dos_pasos:
-                    self.print_file(path.name, leveling=level, mappings=mappings)
+                    self._lanzar_con_paciencia(path.name, level, mappings)
                 return path.name
             if attempt < LISTING_RETRIES - 1:
                 time.sleep(LISTING_RETRY_WAIT)
@@ -508,6 +512,36 @@ class Printer:
         """What the printer has stored and will list on its screen."""
         data = self._post("/gcodeList")
         return list(data.get("gcodeList") or [])
+
+    def _lanzar_con_paciencia(
+        self, nombre: str, level: bool, mappings: list[dict[str, Any]] | None
+    ) -> None:
+        """Arranca el trabajo en cuanto la impresora deje de estar ocupada.
+
+        Acabada la subida, la máquina sigue unos segundos asentando el
+        fichero y contesta «Printer is Busy» a cualquier orden de imprimir.
+        No es un fallo: es que se ha llamado demasiado pronto. Se reintenta
+        un rato antes de darlo por imposible.
+
+        Y si de verdad está imprimiendo otra cosa, se dice lo que importa:
+        que el fichero ya está ahí, y cómo lanzarlo.
+        """
+        for intento in range(INTENTOS_LANZAR):
+            try:
+                self.print_file(nombre, leveling=level, mappings=mappings)
+                return
+            except PrinterError as exc:
+                texto = str(exc).lower()
+                if "busy" not in texto and "ocupada" not in texto:
+                    raise
+                if intento == INTENTOS_LANZAR - 1:
+                    raise PrinterError(
+                        f"«{nombre}» ya está guardado en la impresora, pero no "
+                        "ha podido arrancar porque está ocupada. Lánzalo desde "
+                        "su pantalla cuando acabe, o añádelo a la cola y se "
+                        "manda solo en cuanto quede libre."
+                    ) from exc
+                time.sleep(ESPERA_LANZAR)
 
     def print_file(
         self,
