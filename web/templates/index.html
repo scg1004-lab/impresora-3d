@@ -7,19 +7,25 @@
 <link rel="stylesheet" href="/static/app.css?v={{ v }}">
 </head>
 <body>
+{#- Ayuda contextual: textos en ad5x/ayuda.py, comportamiento en app.js. -#}
+{% macro tip(clave, titulo, extra='') -%}
+<span class="help-tip {{ extra }}"><button type="button" class="help-tip__btn" aria-label="Qué es: {{ titulo }}" aria-describedby="ayuda-{{ clave }}">ⓘ</button><span class="help-tip__pop" role="tooltip" id="ayuda-{{ clave }}" hidden>{{ ayuda[clave] }}</span></span>
+{%- endmacro %}
 <header>
   <h1>Taller AD5X</h1>
   <div class="cabecera-acciones">
     <button id="abrir-trabajos" class="chip chip--boton">
       Trabajos <span id="cola-cuenta" hidden></span>
     </button>
+    {{ tip('trabajos', 'Trabajos', 'help-tip--sep') }}
     <div id="printer-chip" class="chip chip--unknown">Impresora: comprobando…</div>
+    {{ tip('impresora', 'Impresora', 'help-tip--sep') }}
   </div>
 </header>
 
 <main>
   <nav id="catalogue">
-    <h2>Piezas</h2>
+    <h2>Piezas {{ tip('catalogo', 'Piezas') }}</h2>
     {% for part in parts %}
     <button class="part" data-slug="{{ part.slug }}">
       <strong>{{ part.name }}</strong>
@@ -27,7 +33,7 @@
     </button>
     {% endfor %}
     <div class="import">
-      <strong>¿Un modelo de internet?</strong>
+      <strong>¿Un modelo de internet? {{ tip('importar', 'Traer un modelo') }}</strong>
       <p class="muted">Trae el .stl que te hayas descargado y lamínalo aquí.
       También vale un .gcode o .3mf ya laminado.</p>
       <label class="button" for="import-file">Traer fichero</label>
@@ -37,13 +43,14 @@
       <div class="buscador">
         <input id="buscar-modelo" type="search" placeholder="o búscalo en Thingiverse">
         <button id="buscar-modelo-ir" class="button">Buscar</button>
+        {{ tip('thingiverse', 'Buscar en Thingiverse', 'help-tip--sep') }}
       </div>
       {% endif %}
     </div>
 
     {% if broken %}
     <div class="broken">
-      <strong>Piezas con error</strong>
+      <strong>Piezas con error {{ tip('rotas', 'Piezas con error') }}</strong>
       {% for slug, err in broken.items() %}<code>{{ slug }}: {{ err }}</code>{% endfor %}
     </div>
     {% endif %}
@@ -56,7 +63,7 @@
       nueva, pídemela y la añado ahí; aparecerá aquí al recargar.</p>
     </div>
     <form id="params" hidden>
-      <h2 id="part-name"></h2>
+      <h2><span id="part-name"></span> {{ tip('cotas', 'Cotas de la pieza') }}</h2>
       <p id="part-notes" class="notes"></p>
       <div id="fields"></div>
       <button type="submit" class="primary">Generar STL</button>
@@ -67,28 +74,34 @@
     <div id="viewer"></div>
     <div id="result" hidden>
       <dl>
-        <div><dt>Medidas</dt><dd id="r-size">—</dd></div>
-        <div><dt>Material</dt><dd id="r-volume">—</dd></div>
-        <div><dt>Tiempo de impresión</dt><dd id="r-time">—</dd></div>
-        <div><dt>Fichero</dt><dd id="r-file">—</dd></div>
+        <div><dt>Medidas {{ tip('r_medidas', 'Medidas') }}</dt><dd id="r-size">—</dd></div>
+        <div><dt>Material {{ tip('r_material', 'Material (volumen de la pieza)') }}</dt><dd id="r-volume">—</dd></div>
+        <div><dt>Tiempo de impresión {{ tip('r_tiempo', 'Tiempo de impresión') }}</dt><dd id="r-time">—</dd></div>
+        <div><dt>Fichero {{ tip('r_fichero', 'Fichero') }}</dt><dd id="r-file">—</dd></div>
       </dl>
       <div id="warnings"></div>
       {% if options.materials %}
       <div class="print-settings">
-        <label>Material
+        <label>Material {{ tip('material', 'Material') }}
           <select id="material">
             {% for m in options.materials %}
             <option value="{{ m }}" {% if m == default_material %}selected{% endif %}>{{ m }}</option>
             {% endfor %}
           </select>
         </label>
-        <label>Calidad
+        <label>Calidad {{ tip('calidad', 'Calidad') }}
           <select id="quality">
             {% for q in options.qualities %}
             <option value="{{ q }}" {% if q == default_quality %}selected{% endif %}>{{ q }}</option>
             {% endfor %}
           </select>
         </label>
+        <p class="perfil-claves muted">Lo que fija el perfil:
+          <span>altura de capa {{ tip('altura_capa', 'Altura de capa') }}</span>
+          <span>relleno {{ tip('relleno', 'Relleno') }}</span>
+          <span>soportes {{ tip('soportes', 'Soportes') }}</span>
+          <span>temperaturas {{ tip('temperaturas', 'Temperaturas') }}</span>
+        </p>
       </div>
       {% endif %}
       {% if not slicer_ready %}
@@ -110,7 +123,7 @@
       </div>
       {% endif %}
       <div id="ifs" hidden>
-        <h3 id="ifs-title">Color</h3>
+        <h3><span id="ifs-title">Color</span> {{ tip('ifs', 'Color e IFS') }}</h3>
         <p id="ifs-help" class="muted"></p>
         <div id="ifs-rows"></div>
       </div>
@@ -121,6 +134,7 @@
         <button id="a-queue" class="button" disabled>Añadir a la cola</button>
         <button id="a-send" class="button" disabled>Enviar a la impresora</button>
         <button id="a-print" class="button" disabled>Enviar e imprimir</button>
+        {{ tip('acciones', 'Qué hace cada botón', 'help-tip--sep help-tip--centro') }}
       </div>
       <p id="status-line" class="muted"></p>
     </div>
@@ -129,7 +143,7 @@
 
 <aside id="galeria" hidden>
   <header>
-    <h2>Modelos de Thingiverse</h2>
+    <h2>Modelos de Thingiverse {{ tip('galeria', 'Modelos de Thingiverse') }}</h2>
     <button id="cerrar-galeria" class="chip">Cerrar</button>
   </header>
   <p class="muted" id="galeria-aviso">
@@ -147,16 +161,16 @@
   </header>
 
   <section id="t-actual">
-    <h3>Ahora mismo</h3>
+    <h3>Ahora mismo {{ tip('t_actual', 'Ahora mismo') }}</h3>
     <div id="t-actual-cuerpo" class="muted">Consultando…</div>
   </section>
 
   <section>
     <div class="t-titulo">
-      <h3>En cola</h3>
+      <h3>En cola {{ tip('t_cola', 'En cola') }}</h3>
       <label class="t-auto">
         <input type="checkbox" id="t-auto" checked>
-        Lanzar sola
+        Lanzar sola {{ tip('t_auto', 'Lanzar sola') }}
       </label>
     </div>
     <p class="muted" id="t-auto-nota">
@@ -164,10 +178,11 @@
     </p>
     <div id="t-cola"></div>
     <button id="t-limpiar" class="button">Quitar los terminados</button>
+    {{ tip('t_limpiar', 'Quitar los terminados', 'help-tip--sep help-tip--centro') }}
   </section>
 
   <section>
-    <h3>Guardados en la impresora</h3>
+    <h3>Guardados en la impresora {{ tip('t_almacenados', 'Guardados en la impresora') }}</h3>
     <div id="t-almacenados" class="muted">—</div>
     <p class="muted">
       Estos se borran en la pantalla de la impresora: su conexión por red no
@@ -176,7 +191,7 @@
   </section>
 
   <section>
-    <h3>Generados en este ordenador</h3>
+    <h3>Generados en este ordenador {{ tip('t_salida', 'Generados en este ordenador') }}</h3>
     <div id="t-salida-resumen" class="muted">—</div>
     <div class="actions">
       <select id="t-salida-dias">

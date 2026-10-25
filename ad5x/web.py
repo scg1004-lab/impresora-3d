@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from starlette.requests import Request
 
 from . import modelos
+from .ayuda import AYUDA
 from .cad import build_part
 from .catalog import discover as discover_parts
 from .config import BUSCADO, CONFIG, ENV_PATH
@@ -167,6 +168,7 @@ def index(request: Request):
             "default_quality": DEFAULT_QUALITY,
             "printer_ready": CONFIG.printer_configured,
             "modelos_ready": modelos.hay_token(),
+            "ayuda": AYUDA,
         },
     )
 

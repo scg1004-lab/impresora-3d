@@ -12,6 +12,116 @@
   let mappings = null;  // IFS channel map for a multi-colour job
   let ultimoCanal = null;  // el canal elegido, que sobrevive a laminar
 
+  // ------------------------------------------------------------ ayuda (ⓘ)
+  // Los textos fijos vienen pintados por la plantilla (ad5x/ayuda.py); los de
+  // las cotas, del `help=` de cada pieza. Aquí solo el comportamiento: abre con
+  // ratón, foco o clic (el clic solo abre, no alterna), Escape cierra.
+
+  let tipSeq = 0;
+
+  function helpTip(texto, titulo) {
+    const id = "ayuda-dyn-" + ++tipSeq;
+    const wrap = document.createElement("span");
+    wrap.className = "help-tip";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "help-tip__btn";
+    btn.textContent = "ⓘ";
+    btn.setAttribute("aria-label", "Qué es: " + titulo);
+    btn.setAttribute("aria-describedby", id);
+    const pop = document.createElement("span");
+    pop.className = "help-tip__pop";
+    pop.setAttribute("role", "tooltip");
+    pop.id = id;
+    pop.hidden = true;
+    pop.textContent = texto;
+    wrap.append(btn, pop);
+    return wrap;
+  }
+
+  (() => {
+    const MARGEN = 12;
+    let abierto = null;
+    let cierre = null;
+
+    function colocar(tip) {
+      const btn = tip.querySelector(".help-tip__btn");
+      const pop = tip.querySelector(".help-tip__pop");
+      const r = btn.getBoundingClientRect();
+      pop.style.left = "0px";
+      pop.style.top = "0px";
+      const w = pop.offsetWidth;
+      const h = pop.offsetHeight;
+      // Alineado al botón por la izquierda; cerca del borde derecho, por la derecha.
+      let left = r.left;
+      if (left + w > window.innerWidth - MARGEN) left = r.right - w;
+      left = Math.max(MARGEN, Math.min(left, window.innerWidth - w - MARGEN));
+      let top = r.bottom + 6;
+      if (top + h > window.innerHeight - MARGEN) top = Math.max(MARGEN, r.top - h - 6);
+      pop.style.left = left + "px";
+      pop.style.top = top + "px";
+    }
+
+    function abrir(tip) {
+      clearTimeout(cierre);
+      if (abierto && abierto !== tip) cerrar(abierto);
+      const pop = tip.querySelector(".help-tip__pop");
+      pop.hidden = false;
+      tip.querySelector(".help-tip__btn").setAttribute("aria-expanded", "true");
+      colocar(tip);
+      abierto = tip;
+    }
+
+    function cerrar(tip) {
+      if (!tip) return;
+      tip.querySelector(".help-tip__pop").hidden = true;
+      tip.querySelector(".help-tip__btn").setAttribute("aria-expanded", "false");
+      if (abierto === tip) abierto = null;
+    }
+
+    const tipDe = (el) => (el instanceof Element ? el.closest(".help-tip") : null);
+
+    document.addEventListener("mouseover", (e) => {
+      const tip = tipDe(e.target);
+      if (tip) abrir(tip);
+    });
+    document.addEventListener("mouseout", (e) => {
+      const tip = tipDe(e.target);
+      if (!tip || tip.contains(e.relatedTarget)) return;
+      if (tip.contains(document.activeElement)) return; // con foco sigue abierto
+      clearTimeout(cierre);
+      cierre = setTimeout(() => cerrar(tip), 120);
+    });
+    document.addEventListener("focusin", (e) => {
+      const tip = tipDe(e.target);
+      if (tip) abrir(tip);
+    });
+    document.addEventListener("focusout", (e) => {
+      const tip = tipDe(e.target);
+      if (tip && !tip.contains(e.relatedTarget)) cerrar(tip);
+    });
+    document.addEventListener("click", (e) => {
+      const tip = tipDe(e.target);
+      if (tip) {
+        // Que el clic no llegue a la etiqueta o al botón que lo rodea.
+        e.preventDefault();
+        e.stopPropagation();
+        abrir(tip);
+      } else if (abierto) {
+        cerrar(abierto);
+      }
+    }, true);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && abierto) cerrar(abierto);
+    });
+    // El globo es fijo: si algo se desplaza debajo (también al enfocar con el
+    // teclado, que hace scroll hasta el botón), se recoloca con él.
+    const recolocar = () => abierto && colocar(abierto);
+    window.addEventListener("scroll", recolocar, true);
+    window.addEventListener("resize", recolocar);
+
+  })();
+
   // ---------------------------------------------------------------- viewer
 
   const viewer = (() => {
@@ -110,6 +220,7 @@
     const label = document.createElement("label");
     label.textContent = param.label;
     label.htmlFor = "f-" + param.name;
+    if (param.help) label.append(" ", helpTip(param.help, param.label));
 
     const row = document.createElement("div");
     row.className = "row";
