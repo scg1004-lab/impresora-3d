@@ -23,10 +23,14 @@ sys.path.insert(0, str(RAIZ))
 import ad5x.printer as mod  # noqa: E402
 from ad5x.config import Config  # noqa: E402
 
-MAPEO = [{
-    "toolId": 0, "slotId": 2, "materialName": "PLA",
-    "toolMaterialColor": "#F2754E", "slotMaterialColor": "#F95D73",
-}]
+# Dos colores a proposito: con uno solo ya no se manda bahia ninguna, y
+# entonces no hay /printGcode que pueda contestar "busy".
+MAPEO = [
+    {"toolId": 0, "slotId": 2, "materialName": "PLA",
+     "toolMaterialColor": "#F2754E", "slotMaterialColor": "#F95D73"},
+    {"toolId": 1, "slotId": 4, "materialName": "PLA",
+     "toolMaterialColor": "#FEF043", "slotMaterialColor": "#FEF043"},
+]
 
 fallos: list[str] = []
 
