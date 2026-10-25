@@ -71,6 +71,17 @@ def _assets_version() -> str:
     return str(int(max(stamps))) if stamps else "0"
 
 
+def _version_app() -> str:
+    """Qué versión corre: la del paquete, o «de casa» en el equipo de trabajo."""
+    from .actualizar import es_el_paquete, version_instalada
+
+    raiz = Path(__file__).resolve().parent.parent
+    if not es_el_paquete(raiz):
+        return "version de casa"
+    sha = version_instalada(raiz)
+    return f"v{sha[:7]}" if sha else "sin marca de version"
+
+
 def _catalogue():
     """Re-read the folder on every request, so a new part shows up on reload."""
     return discover_parts(CONFIG.parts_dir)
@@ -168,6 +179,7 @@ def index(request: Request):
             "default_quality": DEFAULT_QUALITY,
             "printer_ready": CONFIG.printer_configured,
             "modelos_ready": modelos.hay_token(),
+            "version": _version_app(),
             "ayuda": AYUDA,
         },
     )

@@ -293,3 +293,7 @@ code { font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
 /* Dentro de una etiqueta: aire suficiente (espacio + 13 px) para que tocar el
    final del texto siga enfocando el campo y no abra la ayuda. */
 label .help-tip:not(.help-tip--sep) { margin-left: 13px; }
+
+/* La version, discreta pero a la vista: es lo primero que hay que mirar
+   cuando alguien dice que no le sale lo nuevo. */
+.version { color: var(--muted); font-size: 12px; margin-left: 10px; }

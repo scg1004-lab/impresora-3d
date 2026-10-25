@@ -285,6 +285,17 @@ def _devolver_sus_piezas(raiz: Path, respaldo: Path) -> int:
 
 # ─── lo que llama run.py ─────────────────────────────────────────────────────
 
+def version_instalada(raiz: Path) -> str:
+    """La versión que lleva puesta, para poder enseñarla.
+
+    El actualizador es silencioso a propósito —no puede molestar al
+    arrancar—, pero entonces no hay forma de saber si corrió. Con la versión
+    a la vista, «no me sale lo nuevo» se responde mirando la pantalla en vez
+    de adivinando.
+    """
+    return _version_instalada(raiz)
+
+
 def es_el_paquete(raiz: Path) -> bool:
     """¿Estamos en el paquete portátil, o en el equipo donde se programa?"""
     return (raiz / "py" / "python.exe").is_file()
