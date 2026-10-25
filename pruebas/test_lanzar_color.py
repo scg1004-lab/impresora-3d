@@ -113,19 +113,18 @@ def main() -> int:
             else:
                 fallos.append(f"el lanzamiento no lleva la bahía: {cuerpo}")
 
-        print("2. Con UN color: no se fuerza bahía, que vacía la boquilla")
+        print("2. Con UN color: tambien se pide la bahia, por /printGcode")
         llamadas = correr(tmp, print_now=True, mappings=UN_COLOR)
-        subidas = [c for c in llamadas if c[0].endswith("/uploadGcode")]
         lanzas = [c for c in llamadas if c[0].endswith("/printGcode")]
-        cabeceras = subidas[0][1].get("headers", {}) if subidas else {}
-        if lanzas:
-            fallos.append("ha mandado la bahía con un solo color")
-        elif "materialMappings" in cabeceras:
-            fallos.append("la cabecera lleva la bahía con un solo color")
-        elif cabeceras.get("printNow") != "true":
-            fallos.append("no ha arrancado de una vez")
+        if len(lanzas) != 1:
+            fallos.append(f"{len(lanzas)} /printGcode con un color")
         else:
-            print("   OK   se imprime con lo que haya cargado")
+            bahias = [m.get("slotId")
+                      for m in lanzas[0][1].get("json", {}).get("materialMappings", [])]
+            if bahias == [3]:
+                print(f"   OK   se lanza con la bahia {bahias}")
+            else:
+                fallos.append(f"con un color no llega la bahia: {bahias}")
 
         print("3. Sin color elegido: de una sola vez, como siempre")
         llamadas = correr(tmp, print_now=True, mappings=None)

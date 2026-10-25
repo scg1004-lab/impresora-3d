@@ -403,31 +403,25 @@ class Printer:
         # The printer swallows a bare .gcode but takes minutes to index it, if
         # it ever does; the same job inside a .3mf appears in seconds.
         if path.suffix.lower() == ".gcode":
-            # Los canales elegidos van DENTRO del .3mf: la impresora hace caso
-            # a lo que lleva el fichero, no a la cabecera de la subida. Sin
-            # esto, todo salia del canal 1 eligieras lo que eligieras.
-            canales = [int(m["slotId"]) for m in mappings] if mappings else None
+            # Sin tocar la numeración de filamentos del fichero: de eso se
+            # encarga el mapeo que va en /printGcode.
             try:
-                path = gcode_to_3mf(path, slots=canales)
+                path = gcode_to_3mf(path)
             except OSError as exc:
                 raise PrinterError(f"No se pudo empaquetar el G-code: {exc}") from exc
 
         level = self.config.leveling_before_print if leveling is None else leveling
 
-        # Elegir bahía solo tiene sentido cuando el G-code tiene varias
-        # herramientas. Con una sola, el fichero que genera Orca da por hecho
-        # que el filamento YA está cargado: calienta, hace la línea de purga
-        # y se pone a imprimir, sin una sola orden que le diga a la estación
-        # que cargue nada. Pedirle entonces la bahía 2 deja la boquilla vacía
-        # y la pieza sale en aire. Pasó de verdad, 500 capas en vano.
+        # La bahía se pide por /printGcode, que es donde el firmware la
+        # aplica: en la cabecera de la subida solo la registra. Por eso la
+        # impresión va en dos pasos, subir sin arrancar y lanzar después.
         #
-        # Así que con un color se manda tal cual y se imprime con lo que esté
-        # puesto. Con varios, la impresión va en dos pasos: subir sin arrancar
-        # y después /printGcode con el mapeo, que es donde el firmware sí lo
-        # aplica —la cabecera de la subida solo lo registra—.
-        varios_colores = bool(mappings) and len(mappings) > 1
-        if not varios_colores:
-            mappings = None
+        # Lo que NO se hace es escribir la bahía dentro del fichero. El
+        # fichero numera sus filamentos 1, 2, 3… como los numeró el
+        # laminador, y el mapeo dice a qué bahía va cada número. Cambiar
+        # también el fichero descuadra las dos cosas: no casa con nada, la
+        # estación no carga, y la pieza sale en aire sin dar ningún error.
+        # Pasó: 500 capas en vano.
         en_dos_pasos = bool(print_now and mappings)
 
         headers = {

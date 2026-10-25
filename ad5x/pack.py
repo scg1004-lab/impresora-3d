@@ -66,10 +66,11 @@ MODEL = """<?xml version="1.0" encoding="UTF-8"?>
 
 # Points the firmware at the G-code and the previews. Without this the file
 # lists but will not open.
-# `filament_maps` es a qué bahía del IFS va cada filamento. Iba fijo a "1 1"
-# y por eso todo salía del canal 1 —verde— eligieras lo que eligieras: la
-# impresora hace caso a lo que lleva el fichero dentro, no a la cabecera de
-# la subida. Ahora se rellena con los canales que se hayan elegido.
+# `filament_maps` numera los filamentos del fichero, 1, 2, 3…, igual que los
+# numeró el laminador. NO es la bahía del IFS, aunque lo parezca: la bahía se
+# pide aparte, en el mapeo que va con la orden de imprimir. Escribir aquí la
+# bahía elegida descuadra las dos cosas, la estación no carga y la pieza sale
+# en aire sin dar ningún error. Costó 500 capas averiguarlo.
 MODEL_SETTINGS = """<?xml version="1.0" encoding="UTF-8"?>
 <config>
   <plate>
@@ -177,24 +178,16 @@ def _filaments(text: str) -> list[tuple[str, str]]:
     ]
 
 
-def _canales(slots: list[int] | None, cuantos: int) -> str:
-    """Los canales del IFS, uno por filamento, como los quiere el fichero.
-
-    Sin elección, el 1: es lo que hacía siempre y sigue siendo un valor
-    razonable por defecto.
-    """
-    elegidos = list(slots or [])
-    while len(elegidos) < max(cuantos, 1):
-        elegidos.append(1)
-    return " ".join(str(int(s)) for s in elegidos[: max(cuantos, 1)])
+def _canales(cuantos: int) -> str:
+    """La numeración de filamentos del fichero: 1, 2, 3… uno por filamento."""
+    return " ".join(str(n + 1) for n in range(max(cuantos, 1)))
 
 
-def _slice_info(text: str, nozzle: float, name: str,
-                slots: list[int] | None = None) -> str:
+def _slice_info(text: str, nozzle: float, name: str) -> str:
     """The job summary: machine, time, weight and the filaments it uses."""
     grams = _grams(text)
     filaments = _filaments(text)
-    maps = _canales(slots, len(filaments))
+    maps = _canales(len(filaments))
 
     rows = "".join(
         f'    <filament id="{index + 1}" tray_info_idx="{TRAY_IDS.get(kind.upper(), "GFA00")}"'
@@ -226,13 +219,8 @@ def _slice_info(text: str, nozzle: float, name: str,
     )
 
 
-def gcode_to_3mf(gcode: Path, target: Path | None = None,
-                 slots: list[int] | None = None) -> Path:
-    """Pack a sliced G-code into a .gcode.3mf. Returns the new path.
-
-    `slots` es la bahía del IFS para cada filamento, en el orden en que
-    aparecen en el G-code. Sin ella, todo va al canal 1.
-    """
+def gcode_to_3mf(gcode: Path, target: Path | None = None) -> Path:
+    """Pack a sliced G-code into a .gcode.3mf. Returns the new path."""
     if not TEMPLATE_DIR.is_dir():
         raise PackError(
             f"Falta la plantilla en {TEMPLATE_DIR}. Se obtiene exportando una "
@@ -276,7 +264,7 @@ def gcode_to_3mf(gcode: Path, target: Path | None = None,
         archive.writestr("[Content_Types].xml", CONTENT_TYPES)
         archive.writestr("_rels/.rels", RELS)
         archive.writestr("3D/3dmodel.model", MODEL)
-        canales = _canales(slots, len(_filaments(text)))
+        canales = _canales(len(_filaments(text)))
         archive.writestr(
             "Metadata/model_settings.config",
             MODEL_SETTINGS.format(filament_maps=canales),
@@ -285,7 +273,7 @@ def gcode_to_3mf(gcode: Path, target: Path | None = None,
         archive.writestr("Metadata/project_settings.config", profile)
         archive.writestr(
             "Metadata/slice_info.config",
-            _slice_info(text, nozzle, model_name, slots),
+            _slice_info(text, nozzle, model_name),
         )
         archive.writestr("Metadata/plate_1.json", json.dumps(plate))
         archive.writestr("Metadata/plate_1.gcode", body)

@@ -519,32 +519,33 @@
     const aCiegas = !slots.length;
 
     if (!info.multicolour) {
-      // Un solo color. Aquí NO se puede elegir bahía, y ofrecerlo sería
-      // mentir: el G-code de un color da por hecho que el filamento ya está
-      // cargado —calienta, purga y a imprimir, sin una sola orden para la
-      // estación—, así que pedir otra bahía deja la boquilla vacía y la
-      // pieza sale en aire. Se enseña lo que hay puesto, y punto.
-      $("ifs-title").textContent = "Color";
+      // Un color: se elige de qué bobina sale. La impresora carga esa bahía
+      // ella misma, igual que cuando se elige en su pantalla; lo que no hay
+      // que hacer es tocar la numeración de filamentos del fichero, que es
+      // lo que una vez dejó la boquilla vacía.
+      $("ifs-title").textContent = "¿De qué color?";
       $("ifs-help").textContent = aCiegas
-        ? "La impresora no responde, así que no puedo decirte qué bobina tiene puesta."
-        : "Se imprime con la bobina que la impresora tenga cargada. Para usar " +
-          "otra, cámbiala en su pantalla antes de lanzar el trabajo.";
+        ? "La impresora no responde, así que no puedo mostrarte los colores " +
+          "cargados. Elige el canal de memoria: se imprimirá con esa bobina."
+        : "Elige la bobina. Se imprime entera de ese color. Mira la primera " +
+          "capa: si sale del canal que no es, dímelo.";
 
-      mappings = null;   // no se manda ninguna: que use lo que tiene
+      const tool = info.tools && info.tools[0];
+      const recordado = disponibles.some(
+        (s) => s.slot_id === ultimoCanal && s.loaded) ? ultimoCanal : null;
+      const current = (mappings && mappings[0] && mappings[0].slotId) ||
+        recordado ||
+        (disponibles.find((s) => s.loaded) || { slot_id: 1 }).slot_id;
+      mappings = [mappingFor(0, current, tool)];
 
       const box = document.createElement("div");
       box.className = "swatches";
-      disponibles.filter((s) => s.loaded).forEach((s) => {
-        const etiqueta = document.createElement("span");
-        etiqueta.className = "swatch";
-        const punto = document.createElement("span");
-        punto.className = "dot";
-        punto.style.background = s.colour;
-        const texto = document.createElement("span");
-        texto.textContent = "Canal " + s.slot_id + " · " + s.material;
-        etiqueta.append(punto, texto);
-        box.append(etiqueta);
-      });
+      const pick = (slotId) => {
+        ultimoCanal = slotId;
+        mappings = [mappingFor(0, slotId, tool)];
+        renderIfs(info);
+      };
+      disponibles.forEach((s) => box.append(swatch(s, s.slot_id === current, pick)));
       rows.append(box);
 
       updateSendButtons();

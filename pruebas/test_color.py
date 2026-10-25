@@ -1,17 +1,23 @@
-r"""El canal de color elegido tiene que llegar DENTRO del fichero.
+r"""El fichero NO lleva la bahía: lleva la numeración del laminador.
 
     .venv\Scripts\python.exe pruebas\test_color.py
 
-La impresora hace caso a lo que lleva el `.3mf` escrito dentro, no a la
-cabecera de la subida. Mientras `filament_maps` estuvo fijo a «1», todo
-salía del canal 1 —verde— eligieras el color que eligieras, y encima sin
-error: salía una pieza, solo que del color equivocado.
+`filament_maps`, dentro del `.3mf`, numera los filamentos del fichero —1,
+2, 3…— igual que los numeró el laminador. Parece la bahía del IFS y no lo
+es: la bahía se pide aparte, en el mapeo que acompaña a la orden de
+imprimir.
 
-Un fallo así no lo caza nadie leyendo código. Se caza mirando lo que de
-verdad va dentro del fichero, que es lo que hace esto.
+Escribir ahí la bahía elegida descuadra las dos cosas: el fichero dice
+«filamento 2», el mapeo dice «herramienta 0 → bahía 2», no casa con nada,
+la estación no carga y la pieza sale en aire. Sin error, sin aviso, y sin
+que nadie se entere hasta mirar la impresora: 500 capas en vano.
+
+Esta prueba existe para que no se vuelva a escribir ahí.
 """
 from __future__ import annotations
 
+import inspect
+import re
 import shutil
 import sys
 import tempfile
@@ -39,8 +45,7 @@ fallos: list[str] = []
 
 
 def maps_de(ruta: Path) -> dict[str, str]:
-    """Lo que dicen los dos ficheros del .3mf sobre el canal."""
-    import re
+    """Lo que dicen los dos ficheros del .3mf sobre la numeración."""
     salida = {}
     with zipfile.ZipFile(ruta) as z:
         for nombre in ("Metadata/model_settings.config", "Metadata/slice_info.config"):
@@ -53,21 +58,19 @@ def maps_de(ruta: Path) -> dict[str, str]:
 def main() -> int:
     taller = Path(tempfile.mkdtemp(prefix="color-"))
     try:
-        gcode = taller / "prueba.gcode"
+        print("1. Un filamento: el fichero dice «1», pase lo que pase")
+        gcode = taller / "uno.gcode"
         gcode.write_text(GCODE, encoding="utf-8")
+        destino = taller / "uno.gcode.3mf"
+        gcode_to_3mf(gcode, destino)
+        maps = maps_de(destino)
+        if all(v == "1" for v in maps.values()):
+            print(f"   OK   {maps}")
+        else:
+            fallos.append(f"un filamento: {maps}")
+            print(f"   FALLO  {maps}")
 
-        print("1. Cada canal elegido llega al fichero")
-        for canal in (1, 2, 3, 4):
-            destino = taller / f"canal{canal}.gcode.3mf"
-            gcode_to_3mf(gcode, destino, slots=[canal])
-            maps = maps_de(destino)
-            if all(v == str(canal) for v in maps.values()):
-                print(f"   OK   canal {canal} -> {maps}")
-            else:
-                fallos.append(f"canal {canal}: {maps}")
-                print(f"   FALLO  canal {canal} -> {maps}")
-
-        print("2. Dos colores, cada uno a su canal")
+        print("2. Dos filamentos: «1 2», que es como los numeró el laminador")
         dos = taller / "dos.gcode"
         dos.write_text(
             GCODE.replace("; filament_type = PLA", "; filament_type = PLA;PLA")
@@ -75,26 +78,24 @@ def main() -> int:
                           "; filament_colour = #0ACC38;#F95D73"),
             encoding="utf-8")
         destino = taller / "dos.gcode.3mf"
-        gcode_to_3mf(dos, destino, slots=[2, 4])
+        gcode_to_3mf(dos, destino)
         maps = maps_de(destino)
-        if all(v == "2 4" for v in maps.values()):
+        if all(v == "1 2" for v in maps.values()):
             print(f"   OK   {maps}")
         else:
-            fallos.append(f"dos colores: {maps}")
+            fallos.append(f"dos filamentos: {maps}")
             print(f"   FALLO  {maps}")
 
-        print("3. Sin elegir nada, el canal 1")
-        destino = taller / "sin.gcode.3mf"
-        gcode_to_3mf(gcode, destino)
-        maps = maps_de(destino)
-        if all(v == "1" for v in maps.values()):
-            print(f"   OK   {maps}")
+        print("3. No hay forma de colar una bahía en el fichero")
+        firma = inspect.signature(gcode_to_3mf)
+        if "slots" in firma.parameters:
+            fallos.append("gcode_to_3mf vuelve a aceptar «slots»")
+            print("   FALLO  gcode_to_3mf acepta «slots» otra vez")
         else:
-            fallos.append(f"por defecto: {maps}")
-            print(f"   FALLO  {maps}")
+            print(f"   OK   gcode_to_3mf{firma}")
 
         print("4. El fichero sigue siendo un .3mf válido")
-        with zipfile.ZipFile(taller / "canal3.gcode.3mf") as z:
+        with zipfile.ZipFile(taller / "dos.gcode.3mf") as z:
             dentro = set(z.namelist())
             roto = z.testzip()
         imprescindibles = {
