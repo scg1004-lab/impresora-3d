@@ -285,6 +285,23 @@ def _devolver_sus_piezas(raiz: Path, respaldo: Path) -> int:
 
 # ─── lo que llama run.py ─────────────────────────────────────────────────────
 
+def hay_novedad(raiz: Path) -> str | None:
+    """El sha publicado, si es distinto del instalado. None si no, o si falla.
+
+    Mirar no instala nada: instalar solo se hace al arrancar, que es cuando
+    no hay nadie usando el programa. Esto es para poder avisar.
+    """
+    try:
+        if not es_el_paquete(raiz):
+            return None
+        publicada = _version_publicada()
+        if publicada and publicada != _version_instalada(raiz):
+            return publicada
+    except Exception:  # noqa: BLE001 - avisar es un lujo, nunca un fallo
+        return None
+    return None
+
+
 def version_instalada(raiz: Path) -> str:
     """La versión que lleva puesta, para poder enseñarla.
 

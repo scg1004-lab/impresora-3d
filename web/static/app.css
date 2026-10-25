@@ -297,3 +297,4 @@ label .help-tip:not(.help-tip--sep) { margin-left: 13px; }
 /* La version, discreta pero a la vista: es lo primero que hay que mirar
    cuando alguien dice que no le sale lo nuevo. */
 .version { color: var(--muted); font-size: 12px; margin-left: 10px; }
+.version--nueva { color: var(--accent); font-weight: 600; }

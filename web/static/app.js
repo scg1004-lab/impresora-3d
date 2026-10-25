@@ -650,6 +650,32 @@
   }
 
 
+  // ------------------------------------------------- version y novedades
+
+  // El actualizador solo corre al arrancar. Quien deje el programa abierto
+  // no se entera de que hay algo nuevo, y lo que dice es «no me sale lo
+  // nuevo» sin nada que mirar. Asi que se avisa aqui.
+  async function mirarVersion() {
+    const sitio = document.querySelector(".version");
+    if (!sitio) return;
+    try {
+      const r = await fetch("/api/version");
+      const data = await r.json();
+      sitio.textContent = data.version;
+      if (data.novedad) {
+        sitio.textContent = data.version + " · hay una nueva, cierra y vuelve a abrir";
+        sitio.classList.add("version--nueva");
+        sitio.title =
+          "Hay una version mas nueva (" + data.novedad + "). Se instala sola al " +
+          "abrir el programa: cierra la ventana negra y vuelve a dar doble clic.";
+      }
+    } catch (error) {
+      /* si no se puede mirar, se deja lo que ya ponia */
+    }
+  }
+  mirarVersion();
+  setInterval(mirarVersion, 1800000);
+
   // ------------------------------------------------- modelos de Thingiverse
 
   // Se busca, se ve la miniatura y se trae el que guste. Lo que llega es

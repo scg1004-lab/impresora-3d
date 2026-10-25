@@ -71,6 +71,31 @@ def _assets_version() -> str:
     return str(int(max(stamps))) if stamps else "0"
 
 
+_ULTIMA_MIRADA: dict[str, Any] = {"cuando": 0.0, "novedad": None}
+MIRAR_CADA = 1800  # segundos; media hora sobra para esto
+
+
+def _novedad_en_github() -> str | None:
+    """¿Hay versión nueva esperando? Preguntado como mucho cada media hora."""
+    from .actualizar import hay_novedad
+
+    ahora = time.time()
+    if ahora - _ULTIMA_MIRADA["cuando"] < MIRAR_CADA:
+        return _ULTIMA_MIRADA["novedad"]
+    _ULTIMA_MIRADA["cuando"] = ahora
+    _ULTIMA_MIRADA["novedad"] = hay_novedad(Path(__file__).resolve().parent.parent)
+    return _ULTIMA_MIRADA["novedad"]
+
+
+@app.get("/api/version")
+def api_version():
+    novedad = _novedad_en_github()
+    return {
+        "version": _version_app(),
+        "novedad": novedad[:7] if novedad else None,
+    }
+
+
 def _version_app() -> str:
     """Qué versión corre: la del paquete, o «de casa» en el equipo de trabajo."""
     from .actualizar import es_el_paquete, version_instalada
