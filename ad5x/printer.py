@@ -414,12 +414,20 @@ class Printer:
 
         level = self.config.leveling_before_print if leveling is None else leveling
 
-        # Con color elegido, la impresión va en dos pasos: primero subir sin
-        # arrancar y después /printGcode con el mapeo. El mapeo que viaja en
-        # la cabecera de la subida el firmware solo lo registra, y a la hora
-        # de la verdad imprime por la bahía que coincide con el número de
-        # filamento del laminador —la 1, siempre—. Por /printGcode sí lo
-        # aplica, y además vale para cualquier fichero ya guardado.
+        # Elegir bahía solo tiene sentido cuando el G-code tiene varias
+        # herramientas. Con una sola, el fichero que genera Orca da por hecho
+        # que el filamento YA está cargado: calienta, hace la línea de purga
+        # y se pone a imprimir, sin una sola orden que le diga a la estación
+        # que cargue nada. Pedirle entonces la bahía 2 deja la boquilla vacía
+        # y la pieza sale en aire. Pasó de verdad, 500 capas en vano.
+        #
+        # Así que con un color se manda tal cual y se imprime con lo que esté
+        # puesto. Con varios, la impresión va en dos pasos: subir sin arrancar
+        # y después /printGcode con el mapeo, que es donde el firmware sí lo
+        # aplica —la cabecera de la subida solo lo registra—.
+        varios_colores = bool(mappings) and len(mappings) > 1
+        if not varios_colores:
+            mappings = None
         en_dos_pasos = bool(print_now and mappings)
 
         headers = {

@@ -2,15 +2,17 @@ r"""Imprimir con un color elegido va en dos pasos, no en uno.
 
     .venv\Scripts\python.exe pruebas\test_lanzar_color.py
 
-El mapeo de bahías que viaja en la cabecera de la subida el firmware solo
-lo registra: a la hora de imprimir usa la bahía que coincide con el número
-de filamento del laminador, que es siempre la 1. De ahí que saliera todo
-verde eligieras el color que eligieras, y sin dar ningún error.
+Dos reglas, y la segunda se aprendió gastando 500 capas en vano.
 
-Por `/printGcode` sí lo aplica. Así que con color elegido se sube sin
-arrancar y se lanza después. Esto comprueba justo eso, sin tocar la
-impresora: que el `printNow` de la subida va en «false» y que detrás va un
-`/printGcode` con las bahías dentro.
+Con VARIOS colores, el mapeo de bahías hay que mandarlo por `/printGcode`:
+en la cabecera de la subida el firmware solo lo registra. Así que se sube
+sin arrancar y se lanza después.
+
+Con UN solo color no se manda ninguna bahía. El G-code de un color da por
+hecho que el filamento ya está cargado —calienta, hace la línea de purga y
+se pone a imprimir, sin una sola orden para la estación de materiales—, así
+que pedirle otra bahía deja la boquilla vacía y la pieza sale en aire, sin
+error y sin que nadie se entere hasta mirarla.
 """
 from __future__ import annotations
 
@@ -25,9 +27,14 @@ sys.path.insert(0, str(RAIZ))
 import ad5x.printer as mod  # noqa: E402
 from ad5x.config import Config  # noqa: E402
 
-MAPEO = [{
+UN_COLOR = [{
     "toolId": 0, "slotId": 3, "materialName": "PLA",
     "toolMaterialColor": "#F2754E", "slotMaterialColor": "#2750E0",
+}]
+
+DOS_COLORES = UN_COLOR + [{
+    "toolId": 1, "slotId": 4, "materialName": "PLA",
+    "toolMaterialColor": "#FEF043", "slotMaterialColor": "#FEF043",
 }]
 
 fallos: list[str] = []
@@ -82,8 +89,8 @@ def main() -> int:
     import shutil
     tmp = Path(tempfile.mkdtemp(prefix="lanzar-"))
     try:
-        print("1. Con color elegido: subir sin arrancar y lanzar después")
-        llamadas = correr(tmp, print_now=True, mappings=MAPEO)
+        print("1. Con varios colores: subir sin arrancar y lanzar después")
+        llamadas = correr(tmp, print_now=True, mappings=DOS_COLORES)
         subidas = [c for c in llamadas if c[0].endswith("/uploadGcode")]
         lanzas = [c for c in llamadas if c[0].endswith("/printGcode")]
 
@@ -101,12 +108,26 @@ def main() -> int:
         else:
             cuerpo = lanzas[0][1].get("json", {})
             bahias = [m.get("slotId") for m in cuerpo.get("materialMappings", [])]
-            if bahias == [3] and cuerpo.get("useMatlStation") is True:
+            if bahias == [3, 4] and cuerpo.get("useMatlStation") is True:
                 print(f"   OK   se lanza con las bahías {bahias}")
             else:
                 fallos.append(f"el lanzamiento no lleva la bahía: {cuerpo}")
 
-        print("2. Sin color elegido: de una sola vez, como siempre")
+        print("2. Con UN color: no se fuerza bahía, que vacía la boquilla")
+        llamadas = correr(tmp, print_now=True, mappings=UN_COLOR)
+        subidas = [c for c in llamadas if c[0].endswith("/uploadGcode")]
+        lanzas = [c for c in llamadas if c[0].endswith("/printGcode")]
+        cabeceras = subidas[0][1].get("headers", {}) if subidas else {}
+        if lanzas:
+            fallos.append("ha mandado la bahía con un solo color")
+        elif "materialMappings" in cabeceras:
+            fallos.append("la cabecera lleva la bahía con un solo color")
+        elif cabeceras.get("printNow") != "true":
+            fallos.append("no ha arrancado de una vez")
+        else:
+            print("   OK   se imprime con lo que haya cargado")
+
+        print("3. Sin color elegido: de una sola vez, como siempre")
         llamadas = correr(tmp, print_now=True, mappings=None)
         subidas = [c for c in llamadas if c[0].endswith("/uploadGcode")]
         lanzas = [c for c in llamadas if c[0].endswith("/printGcode")]
@@ -115,8 +136,8 @@ def main() -> int:
         else:
             fallos.append("sin mapeo ya no se arranca en la propia subida")
 
-        print("3. Solo enviar: ni se arranca ni se lanza")
-        llamadas = correr(tmp, print_now=False, mappings=MAPEO)
+        print("4. Solo enviar: ni se arranca ni se lanza")
+        llamadas = correr(tmp, print_now=False, mappings=DOS_COLORES)
         lanzas = [c for c in llamadas if c[0].endswith("/printGcode")]
         subidas = [c for c in llamadas if c[0].endswith("/uploadGcode")]
         if not lanzas and subidas[0][1]["headers"].get("printNow") == "false":
