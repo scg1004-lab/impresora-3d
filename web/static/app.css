@@ -228,14 +228,14 @@ code { font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
 /* Buscador de modelos y su galería. */
 .buscador { display: flex; gap: 6px; margin-top: 9px; }
 .buscador input {
-  flex: 1; min-width: 0; background: #15181d; color: var(--fg);
+  flex: 1; min-width: 0; background: #15181d; color: var(--ink);
   border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 13px;
 }
 .buscador input:focus { outline: none; border-color: var(--accent); }
 
 #galeria {
   position: fixed; inset: 0 0 0 auto; width: min(760px, 100%);
-  background: var(--bg2); border-left: 1px solid var(--line);
+  background: var(--panel); border-left: 1px solid var(--line);
   padding: 18px; overflow-y: auto; z-index: 20;
 }
 #galeria header { display: flex; align-items: center; justify-content: space-between; }
@@ -246,7 +246,7 @@ code { font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
 .modelo {
   border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
   background: #15181d; cursor: pointer; text-align: left; padding: 0;
-  color: var(--fg); font: inherit;
+  color: var(--ink); font: inherit;
 }
 .modelo:hover { border-color: var(--accent); }
 .modelo img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: #0f1115; }
