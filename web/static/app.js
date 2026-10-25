@@ -26,7 +26,7 @@
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "help-tip__btn";
-    btn.textContent = "ⓘ";
+    btn.textContent = "i";
     btn.setAttribute("aria-label", "Qué es: " + titulo);
     btn.setAttribute("aria-describedby", id);
     const pop = document.createElement("span");

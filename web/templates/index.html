@@ -9,7 +9,7 @@
 <body>
 {#- Ayuda contextual: textos en ad5x/ayuda.py, comportamiento en app.js. -#}
 {% macro tip(clave, titulo, extra='') -%}
-<span class="help-tip {{ extra }}"><button type="button" class="help-tip__btn" aria-label="Qué es: {{ titulo }}" aria-describedby="ayuda-{{ clave }}">ⓘ</button><span class="help-tip__pop" role="tooltip" id="ayuda-{{ clave }}" hidden>{{ ayuda[clave] }}</span></span>
+<span class="help-tip {{ extra }}"><button type="button" class="help-tip__btn" aria-label="Qué es: {{ titulo }}" aria-describedby="ayuda-{{ clave }}">i</button><span class="help-tip__pop" role="tooltip" id="ayuda-{{ clave }}" hidden>{{ ayuda[clave] }}</span></span>
 {%- endmacro %}
 <header>
   <h1>Taller AD5X</h1>
@@ -134,7 +134,7 @@
         <button id="a-queue" class="button" disabled>Añadir a la cola</button>
         <button id="a-send" class="button" disabled>Enviar a la impresora</button>
         <button id="a-print" class="button" disabled>Enviar e imprimir</button>
-        {{ tip('acciones', 'Qué hace cada botón', 'help-tip--sep help-tip--centro') }}
+        {{ tip('acciones', 'Qué hace cada botón', 'help-tip--sep') }}
       </div>
       <p id="status-line" class="muted"></p>
     </div>
@@ -170,7 +170,7 @@
       <h3>En cola {{ tip('t_cola', 'En cola') }}</h3>
       <label class="t-auto">
         <input type="checkbox" id="t-auto" checked>
-        Lanzar sola {{ tip('t_auto', 'Lanzar sola') }}
+        Lanzar sola {{ tip('t_auto', 'Lanzar sola', 'help-tip--sep') }}
       </label>
     </div>
     <p class="muted" id="t-auto-nota">
@@ -178,7 +178,7 @@
     </p>
     <div id="t-cola"></div>
     <button id="t-limpiar" class="button">Quitar los terminados</button>
-    {{ tip('t_limpiar', 'Quitar los terminados', 'help-tip--sep help-tip--centro') }}
+    {{ tip('t_limpiar', 'Quitar los terminados', 'help-tip--sep') }}
   </section>
 
   <section>

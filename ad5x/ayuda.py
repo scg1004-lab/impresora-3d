@@ -16,7 +16,7 @@ AYUDA: dict[str, str] = {
     "trabajos": (
         "Abre el panel de trabajos: lo que imprime ahora, la cola de la app, "
         "lo guardado en la impresora y lo generado en este ordenador. "
-        "El número son los trabajos pendientes de la cola."
+        "El número indica los trabajos pendientes en la cola."
     ),
     "impresora": (
         "Estado de la AD5X por su conexión de red (modo LAN), consultado cada "
@@ -26,14 +26,13 @@ AYUDA: dict[str, str] = {
     ),
     # --- catálogo -----------------------------------------------------------
     "catalogo": (
-        "Piezas paramétricas: cada una es un fichero Python en piezas/ que "
-        "dibuja el modelo con CadQuery a partir de sus cotas. La lista se "
-        "relee al recargar la página, así que una pieza nueva aparece sola."
+        "Piezas paramétricas: cada una dibuja el modelo con CadQuery a partir "
+        "de sus cotas. Al elegir una, sus cotas salen en la columna central."
     ),
     "importar": (
-        "Modelos (.stl, .obj, .step) se guardan en salida/ y se laminan aquí. "
-        "Un .gcode, .gx o .3mf ya laminado va directo a elegir color y enviar. "
-        "Un .3mf que solo trae geometría se trata como modelo."
+        "Formatos: .stl, .obj, .step y .stp como modelo; .gcode, .gx y .3mf "
+        "laminados. Se copia a salida/. Lo ya laminado va directo a elegir "
+        "color y enviar; un .3mf que solo trae geometría se trata como modelo."
     ),
     "thingiverse": (
         "Busca en Thingiverse con su API (hace falta THINGIVERSE_TOKEN en el "
@@ -41,8 +40,8 @@ AYUDA: dict[str, str] = {
         "hubieras traído tú."
     ),
     "rotas": (
-        "Ficheros de piezas/ que no se han podido cargar, con el error de "
-        "Python. No salen en el catálogo hasta que se arreglen."
+        "Ficheros de piezas/ que no se han podido cargar. No salen en el "
+        "catálogo hasta que se arreglen; aparecen al recargar la página."
     ),
     # --- formulario ---------------------------------------------------------
     "cotas": (
@@ -78,8 +77,8 @@ AYUDA: dict[str, str] = {
     ),
     "calidad": (
         "Perfil de proceso de Orca. El número es la altura de capa: menos es "
-        "más fino y más lento. Por defecto: 0.20mm Standard. Los tres "
-        "perfiles comparten relleno, paredes y soportes (ver los ⓘ de abajo)."
+        "más fino y más lento. Por defecto: «0.20mm Standard». Los tres "
+        "perfiles comparten relleno, paredes y soportes (ver las ayudas de abajo)."
     ),
     "altura_capa": (
         "Grosor de cada capa: 0,16 mm (más detalle), 0,20 mm (por defecto) o "
@@ -131,21 +130,22 @@ AYUDA: dict[str, str] = {
         "esta app. Se guarda en salida/.cola.json y sobrevive a un reinicio."
     ),
     "t_auto": (
-        "Activado por defecto. La app mira la impresora cada 20 segundos y, "
-        "si está libre, manda y lanza el siguiente pendiente; tras enviar "
-        "espera 45 segundos antes de volver a mirar."
+        "La app mira la impresora cada 20 segundos; tras enviar un trabajo "
+        "espera 45 segundos antes de volver a mirar. Desactivado, la cola "
+        "se queda quieta hasta que lo vuelvas a marcar."
     ),
     "t_limpiar": (
         "Quita de la lista los trabajos hechos o con error. Los pendientes y "
         "los enviados se quedan. No borra ningún fichero."
     ),
     "t_almacenados": (
-        "Ficheros guardados en la memoria de la impresora (por ejemplo, los "
-        "de «Enviar a la impresora»). Su API de red no permite borrarlos."
+        "Lista de ficheros que la impresora tiene en su memoria: todo lo que "
+        "se le sube desde aquí (enviar, enviar e imprimir o la cola) y lo que "
+        "tuviera de antes."
     ),
     "t_salida": (
         "Ficheros de la carpeta salida/ (STL, proyectos y G-code). «Borrar» "
-        "quita los más antiguos que la antigüedad elegida (por defecto, más "
-        "de una semana). Lo que espera en la cola no se borra."
+        "quita los que superan la antigüedad elegida. Lo que espera en la "
+        "cola no se borra."
     ),
 }
