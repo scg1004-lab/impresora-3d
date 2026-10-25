@@ -264,7 +264,7 @@ code { font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
   position: relative; display: inline-grid; place-items: center;
   width: 18px; height: 18px; padding: 0; border-radius: 50%;
   border: 1px solid var(--muted); background: transparent; color: var(--muted);
-  font: italic 700 11px/1 Georgia, "Times New Roman", serif;
+  font: italic 700 11px/1 "Segoe UI", system-ui, sans-serif;
   text-transform: none; letter-spacing: 0; cursor: help;
 }
 /* 44 px de zona de toque sin cambiar el aspecto. */

@@ -27,7 +27,7 @@ AYUDA: dict[str, str] = {
     # --- catálogo -----------------------------------------------------------
     "catalogo": (
         "Piezas paramétricas: cada una dibuja el modelo con CadQuery a partir "
-        "de sus cotas. Al elegir una, sus cotas salen en la columna central."
+        "de sus cotas. Al elegir una, sus cotas salen en el formulario."
     ),
     "importar": (
         "Formatos: .stl, .obj, .step y .stp como modelo; .gcode, .gx y .3mf "
