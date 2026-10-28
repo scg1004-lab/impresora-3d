@@ -249,6 +249,28 @@ verdad.
 El progreso se mide **por capas**, no por el `printProgress` de la impresora,
 que va muy retrasado: marcaba 0,4 % cuando iba por la capa 22 de 72.
 
+## El marcapáginas y el truco de las plantillas
+
+Una tira fina con un nombre. Fino a propósito: a 1 mm el PLA dobla y no
+abulta entre las páginas; por encima de 1,5 mm es una tablilla y levanta la
+tapa. Sale en 22 minutos y 8 gramos.
+
+Las letras van en relieve o **caladas**, y el calado tiene una trampa que no
+se ve hasta que la pieza está en la cama: el hueco de una A, una O o una D
+queda suelto al atravesar la chapa y se cae. Media docena de trocitos por
+ahí y un nombre ilegible.
+
+La primera versión lo detectaba y se negaba a generar. Técnicamente
+correcto, inútil en la práctica: casi cualquier nombre en español lleva una
+A o una O, así que la opción no servía para nada.
+
+Se resuelve como las plantillas de toda la vida: una barrita que une el
+hueco con el resto de la letra. Por eso una «O» de plantilla se ve partida.
+Los puentes se calculan **sobre la pieza ya calada**, buscando qué trozos
+quedan sueltos, en vez de adivinar qué letras los producen: así da igual la
+fuente que tenga el sistema y da igual el idioma. Y el puente se le resta al
+corte en lugar de sumárselo a la tira, para que quede a ras.
+
 ## Ir limpiando
 
 Cada pieza deja aquí su rastro: el STL, el g-code y, si es de dos colores, el

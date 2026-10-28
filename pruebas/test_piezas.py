@@ -51,6 +51,17 @@ VARIANTES: dict[str, list[dict]] = {
         {"forma": "Bajo la mesa", "hueco": 60.0, "caida": 15.0, "grueso": 25.0},
         {"altura": 215.0, "cuna": 140.0, "hueco": 60.0},
     ],
+    "marcapaginas": [
+        {"modo": "Letras caladas"},
+        # Nombres con hueco dentro: es donde se caen los trozos si no hay
+        # puente. Si alguna vez vuelve a fallar, sera aqui.
+        {"texto": "ANA", "modo": "Letras caladas"},
+        {"texto": "ROBERTO", "modo": "Letras caladas"},
+        {"texto": "88", "modo": "Letras caladas"},
+        {"dos_colores": True},
+        {"texto": "E", "largo": 80.0, "ancho": 20.0, "agujero": 0.0, "esquina": 0.0},
+        {"texto": "SANTIAGO CASTRO", "largo": 210.0, "ancho": 80.0},
+    ],
     "lapicero": [
         {"forma": "Redondo"},
         {"forma": "Redondo", "separador": True},
