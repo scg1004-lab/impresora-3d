@@ -1,0 +1,55 @@
+PARCHE PARA CUANDO EL TALLER NO SE ACTUALIZA SOLO
+=================================================
+
+El Taller se actualiza solo al abrirlo, bajandose el codigo de GitHub.
+Cuando eso falla en un ordenador que no tienes delante, este parche lo
+fuerza y CUENTA lo que pasa, que es lo que no hacia el automatico.
+
+Son dos ficheros y dos kilobytes: se mandan por correo o por WhatsApp.
+No hace falta volver a pasar el paquete de medio giga.
+
+
+COMO SE USA
+-----------
+
+1. Manda estos dos ficheros:
+
+      Actualizar ahora.cmd
+      forzar_actualizacion.py
+
+2. En el otro ordenador, copialos DENTRO de la carpeta del Taller: la
+   que tiene al lado "Taller AD5X.cmd" y una carpeta llamada "py".
+
+3. Doble clic en "Actualizar ahora.cmd".
+
+4. Lee lo que pone. Lo dice todo: la version que tenia, la que hay
+   publicada, si se ha podido bajar y si la ha puesto.
+
+
+LO QUE PUEDE DECIR
+------------------
+
+"Ya tienes la ultima"
+    El programa esta al dia. Si aun asi no se ve lo nuevo, es que se
+    esta abriendo OTRA carpeta: busca si hay mas de una.
+
+"No se ha podido preguntar a GitHub"
+    Ese ordenador no tiene internet, o un antivirus corta la conexion.
+
+"No puedo escribir en esta carpeta"
+    Permisos o antivirus. Suele arreglarse moviendo la carpeta del
+    Taller al Escritorio.
+
+"Esto no es la carpeta del Taller"
+    Los dos ficheros no estan donde tienen que estar. Tienen que ir
+    al lado de "Taller AD5X.cmd".
+
+
+QUE TOCA Y QUE NO
+-----------------
+
+Solo el codigo. No toca "py" (el Python), ni "modelos", ni "salida",
+ni el ".env" con los datos de la impresora.
+
+Antes de cambiar nada guarda una copia en ".anterior-reparacion".
+Si sale mal, lo de antes sigue ahi.
