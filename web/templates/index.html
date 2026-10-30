@@ -46,6 +46,16 @@
         <button id="buscar-modelo-ir" class="button">Buscar</button>
         {{ tip('thingiverse', 'Buscar en Thingiverse', 'help-tip--sep') }}
       </div>
+      {% else %}
+      {#
+        Esconderlo sin más hacía pensar que el programa no se había
+        actualizado, cuando lo único que falta es el token. Mejor decirlo.
+      #}
+      <p class="muted">
+        El buscador de Thingiverse necesita una línea en el fichero
+        <code>.env</code> de esta carpeta, y aquí no está. Pídesela a papá:
+        es <code>THINGIVERSE_TOKEN</code>.
+      </p>
       {% endif %}
     </div>
 
