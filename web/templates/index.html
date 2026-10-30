@@ -19,8 +19,13 @@
     </button>
     {{ tip('trabajos', 'Trabajos', 'help-tip--sep') }}
     <div id="printer-chip" class="chip chip--unknown">Impresora: comprobando…</div>
-    <span class="version" title="La versión del programa que tienes puesta. Se actualiza sola al abrirlo.">{{ version }}</span>
     {{ tip('impresora', 'Impresora', 'help-tip--sep') }}
+    {#
+      En gris de 12 px y pegada al borde no se veia, que para esto es lo
+      mismo que no estar: es el primer dato que hay que mirar cuando
+      alguien dice que no le sale lo nuevo. Va de chip, como los demas.
+    #}
+    <div class="chip version" title="La versión del programa que tienes puesta. Se actualiza sola al abrir el programa.">{{ version }}</div>
   </div>
 </header>
 

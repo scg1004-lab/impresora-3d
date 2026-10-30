@@ -35,6 +35,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 import urllib.parse
 import urllib.request
 import zipfile
@@ -48,6 +49,8 @@ MARCA = ".version"        # la versión instalada, para no bajar lo mismo dos ve
 RESPALDO = ".anterior"    # la copia de seguridad, por si la nueva no arranca
 ENTRANTE = ".nuevo"       # donde se arma la versión nueva antes de poner nada
 CERROJO = ".actualizando"  # carpeta-cerrojo: dos arranques a la vez no se pisan
+PARTE = "actualizaciones.txt"   # que paso en cada arranque, para poder mirarlo
+LINEAS_PARTE = 40               # con las ultimas sobra
 
 ESPERA = 6                # segundos para preguntar la versión
 ESPERA_DESCARGA = 60      # segundos para bajarse el código
@@ -326,8 +329,16 @@ def _version_instalada(raiz: Path) -> str:
 
 
 def _hacerlo(raiz: Path) -> str | None:
-    publicada = _version_publicada()
-    if not publicada or publicada == _version_instalada(raiz):
+    try:
+        publicada = _version_publicada()
+    except Exception as exc:  # noqa: BLE001 - lo normal es no tener internet
+        _apuntar(raiz, f"no he podido preguntar a GitHub: {type(exc).__name__}")
+        return None
+    if not publicada:
+        _apuntar(raiz, "GitHub ha contestado algo que no es una versión")
+        return None
+    if publicada == _version_instalada(raiz):
+        _apuntar(raiz, f"ya estaba al día ({publicada[:7]})")
         return None
 
     zf = _descargar(publicada)
@@ -382,6 +393,27 @@ def _hacerlo(raiz: Path) -> str | None:
     return aviso
 
 
+def _apuntar(raiz: Path, linea: str) -> None:
+    """Deja constancia de lo que ha pasado, sin poder fallar por ello.
+
+    Sin esto, un portátil que no se actualiza no da ninguna pista: ni por
+    qué no, ni si llegó a intentarlo. Son cuatro líneas de texto que se
+    abren con el Bloc de notas.
+    """
+    try:
+        sello = time.strftime("%Y-%m-%d %H:%M")
+        fichero = raiz / PARTE
+        previas = []
+        if fichero.is_file():
+            previas = fichero.read_text(encoding="utf-8").splitlines()
+        previas.append(f"{sello}  {linea}")
+        fichero.write_text(
+            "\n".join(previas[-LINEAS_PARTE:]) + "\n", encoding="utf-8"
+        )
+    except Exception:  # noqa: BLE001 - apuntar nunca puede tirar el arranque
+        pass
+
+
 def comprobar(raiz: Path) -> str | None:
     """Actualiza si toca. Devuelve qué ha hecho, o None si no ha hecho nada.
 
@@ -389,7 +421,7 @@ def comprobar(raiz: Path) -> str | None:
     """
     try:
         if not es_el_paquete(raiz):
-            return None
+            return None   # el equipo de trabajo: ni se apunta, ni se toca
 
         # Dos dobles clics seguidos no pueden actualizar a la vez sobre la
         # misma carpeta. `mkdir` es atómico: o lo creas tú, o ya era de otro.
@@ -397,12 +429,22 @@ def comprobar(raiz: Path) -> str | None:
         try:
             cerrojo.mkdir()
         except FileExistsError:
+            _apuntar(raiz, "otro arranque estaba actualizando; no hago nada")
             return None
-        except OSError:
+        except OSError as exc:
+            _apuntar(raiz, f"no puedo escribir en la carpeta ({exc})")
             return None
         try:
-            return _hacerlo(raiz)
+            # Lo que haya pasado dentro ya queda apuntado ahí: aquí se
+            # apuntaría encima, y con un «ya estaba al día» justo debajo de
+            # un «no he podido preguntar a GitHub», que es decir dos cosas
+            # distintas sobre el mismo arranque.
+            hecho = _hacerlo(raiz)
+            if hecho:
+                _apuntar(raiz, hecho)
+            return hecho
         finally:
             shutil.rmtree(cerrojo, ignore_errors=True)
-    except Exception:  # noqa: BLE001 - arrancar vale más que actualizar
+    except Exception as exc:  # noqa: BLE001 - arrancar vale más que actualizar
+        _apuntar(raiz, f"ha fallado: {type(exc).__name__}: {exc}")
         return None
