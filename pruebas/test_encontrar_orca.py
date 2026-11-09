@@ -30,7 +30,8 @@ fallos: list[str] = []
 
 
 def instalacion(base: Path, carpeta: str, exe: str, *, perfiles: bool = True,
-                acompanantes: tuple[str, ...] = ()) -> Path:
+                acompanantes: tuple[str, ...] = (),
+                fabricante: str = "Flashforge") -> Path:
     """Una instalación falsa: el programa, sus perfiles y algún estorbo."""
     sitio = base / "Program Files" / carpeta
     sitio.mkdir(parents=True, exist_ok=True)
@@ -40,7 +41,7 @@ def instalacion(base: Path, carpeta: str, exe: str, *, perfiles: bool = True,
     for otro in acompanantes:
         (sitio / otro).write_bytes(b"x" * 1000)
     if perfiles:
-        (sitio / "resources" / "profiles" / "Flashforge").mkdir(parents=True)
+        (sitio / "resources" / "profiles" / fabricante).mkdir(parents=True)
     return sitio / exe
 
 
@@ -76,7 +77,8 @@ CASOS = [
 ]
 
 
-def con_perfiles_de(exe: Path, cuando: str) -> None:
+def con_perfiles_de(exe: Path, cuando: str,
+                    fabricante: str = "Flashforge") -> None:
     """Le pone a una instalación perfiles de la AD5X con una fecha dada.
 
     `cuando` es «2025-09-24». La fecha va al fichero del perfil y a la
@@ -86,7 +88,7 @@ def con_perfiles_de(exe: Path, cuando: str) -> None:
     ano, mes, dia = (int(p) for p in cuando.split("-"))
     sello = datetime.datetime(ano, mes, dia).timestamp()
 
-    perfiles = exe.parent / "resources" / "profiles" / "Flashforge"
+    perfiles = exe.parent / "resources" / "profiles" / fabricante
     maquina = perfiles / "machine"
     maquina.mkdir(parents=True, exist_ok=True)
     ficha = maquina / "Flashforge AD5X 0.4 nozzle.json"
@@ -96,6 +98,44 @@ def con_perfiles_de(exe: Path, cuando: str) -> None:
     os.utime(ficha, (sello, sello))
     os.utime(maquina, (sello, sello))
     os.utime(perfiles, (sello, sello))
+
+
+def caso_carpeta_de_perfiles() -> None:
+    """Los perfiles tienen que aparecer aunque su carpeta se llame de otra forma.
+
+    Todo el laminado cuelga de encontrar
+    `resources/profiles/<fabricante>/machine/…AD5X….json`. Hasta hoy ese
+    «fabricante» es «Flashforge», pero el programa ya se renombró una vez;
+    si la carpeta cambia y la app la busca por su nombre, el botón
+    «Laminar» deja de funcionar de golpe y sin explicación.
+    """
+    for titulo, fabricante, debe_salir in (
+        ("la de siempre", "Flashforge", True),
+        ("con otro nombre", "FlashStudio", True),
+        ("sin perfiles de la AD5X dentro", None, False),
+    ):
+        base = Path(tempfile.mkdtemp(prefix="orca-perf-"))
+        try:
+            exe = instalacion(
+                base, "Flashforge/Flash Studio Desktop", "FlashStudio.exe",
+                fabricante=fabricante or "Otra Marca",
+            )
+            if fabricante:
+                con_perfiles_de(exe, "2026-10-27", fabricante)
+
+            hallado = cfg._perfiles_de(exe)
+            bien = (hallado is not None
+                    and any((hallado / "machine").glob("*AD5X*.json"))
+                    ) if debe_salir else not (
+                        hallado and any((hallado / "machine").glob("*AD5X*.json")))
+            if bien:
+                print(f"   OK   perfiles, {titulo}"
+                      + (f" -> {hallado.name}" if hallado else ""))
+            else:
+                fallos.append(f"perfiles, {titulo}: salió {hallado}")
+                print(f"   FALLO  perfiles, {titulo}: {hallado}")
+        finally:
+            shutil.rmtree(base, ignore_errors=True)
 
 
 def caso_dos_instalados() -> None:
@@ -162,6 +202,7 @@ def main() -> int:
         finally:
             shutil.rmtree(base, ignore_errors=True)
 
+    caso_carpeta_de_perfiles()
     caso_dos_instalados()
 
     # Y en este ordenador, el de verdad tiene que seguir apareciendo.

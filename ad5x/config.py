@@ -257,9 +257,31 @@ def _rebuscar() -> Path | None:
 
 
 def _perfiles_de(exe: Path) -> Path | None:
-    """La carpeta de perfiles que acompaña a un ejecutable."""
-    carpeta = exe.parent / "resources" / "profiles" / "Flashforge"
-    return carpeta if carpeta.is_dir() else None
+    """La carpeta de perfiles de la AD5X que acompaña a un ejecutable.
+
+    Se busca por lo que hay dentro y no por el nombre: la carpeta del
+    fabricante se ha llamado «Flashforge» hasta ahora, pero el programa ya
+    cambió de nombre una vez y la carpeta puede cambiar en la siguiente
+    versión. Lo que no cambia es que los perfiles de la máquina están en
+    `<fabricante>/machine/…AD5X….json`.
+    """
+    base = exe.parent / "resources" / "profiles"
+    if not base.is_dir():
+        return None
+
+    preferida = base / "Flashforge"
+    candidatas = [preferida] if preferida.is_dir() else []
+    try:
+        candidatas += [c for c in base.iterdir()
+                       if c.is_dir() and c != preferida]
+    except OSError:
+        pass
+
+    for carpeta in candidatas:
+        if any((carpeta / "machine").glob("*AD5X*.json")):
+            return carpeta
+    # Ninguna trae perfiles de la AD5X; si existe la de siempre, esa.
+    return preferida if preferida.is_dir() else None
 
 
 def fecha_perfiles(perfiles: Path) -> float:
@@ -360,8 +382,7 @@ def _system_profiles(slicer_exe: Path | None) -> Path | None:
     """The vendor profile folder that ships with the slicer."""
     if slicer_exe is None:
         return None
-    folder = slicer_exe.parent / "resources" / "profiles" / "Flashforge"
-    return folder if folder.is_dir() else None
+    return _perfiles_de(slicer_exe)
 
 
 def load() -> Config:
