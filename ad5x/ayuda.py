@@ -24,6 +24,15 @@ AYUDA: dict[str, str] = {
         "Si la API no contesta pero la impresora se anuncia en la red, dice "
         "«sin modo LAN». El avance es la capa actual sobre el total."
     ),
+    "nivelar": (
+        "Antes de empezar, la impresora recorre la bandeja con el sensor y "
+        "corrige lo que esté torcido o a distinta altura. Tarda un par de "
+        "minutos y es lo que más decide que la primera capa agarre. "
+        "Conviene dejarlo puesto después de actualizar el firmware, de "
+        "mover la impresora o de cambiar la bandeja: esas tres cosas borran "
+        "o estropean el nivelado anterior. Lo pide la app al lanzar la "
+        "impresión, no hay que tocar la pantalla de la máquina."
+    ),
     "agarre": (
         "Cómo se sujeta la pieza a la bandeja. «Lo decide el laminador» deja "
         "que lo elija él, que es lo normal, pero en piezas planas y bajas "

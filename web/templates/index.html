@@ -122,6 +122,10 @@
             <option value="faldilla">Faldilla de 5 mm</option>
           </select>
         </label>
+        <label class="casilla">
+          <input type="checkbox" id="nivelar" {% if nivelar_por_defecto %}checked{% endif %}>
+          Nivelar antes de imprimir {{ tip('nivelar', 'Nivelar antes de imprimir') }}
+        </label>
         <p class="perfil-claves muted">Lo que fija el perfil:
           <span>altura de capa {{ tip('altura_capa', 'Altura de capa') }}</span>
           <span>relleno {{ tip('relleno', 'Relleno') }}</span>

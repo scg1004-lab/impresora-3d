@@ -188,6 +188,8 @@ class SendRequest(BaseModel):
     file: str
     print_now: bool = False
     mappings: list[dict[str, Any]] | None = None
+    # None = lo que diga el .env; la casilla de la pantalla manda cuando viene.
+    leveling: bool | None = None
 
 
 # --- pages ----------------------------------------------------------------
@@ -236,6 +238,7 @@ def index(request: Request):
             "modelos_ready": modelos.hay_token(),
             "version": _version_app(),
             "laminador": _laminador_puesto(),
+            "nivelar_por_defecto": CONFIG.leveling_before_print,
             "ayuda": AYUDA,
         },
     )
@@ -364,7 +367,8 @@ def api_send(request: SendRequest):
 
     try:
         name = printer.upload(
-            path, print_now=request.print_now, mappings=request.mappings
+            path, print_now=request.print_now, mappings=request.mappings,
+            leveling=request.leveling,
         )
     except PrinterError as exc:
         raise HTTPException(400, str(exc)) from exc

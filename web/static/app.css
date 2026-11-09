@@ -95,6 +95,15 @@ code { font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
   border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px;
 }
 .print-settings select:focus { outline: none; border-color: var(--accent); }
+/* La casilla va en la misma fila que los desplegables, pero su texto es la
+   etiqueta, no un rotulo encima: alineada con la casilla y a la altura de
+   los selectores de al lado. */
+.print-settings label.casilla {
+  display: flex; align-items: center; gap: 8px; align-self: flex-end;
+  min-height: 36px; text-transform: none; letter-spacing: 0; color: var(--ink);
+  font-size: 14px;
+}
+.print-settings label.casilla input { width: 18px; height: 18px; accent-color: var(--accent); }
 
 /* Narrower, but still three columns: stacking makes you hunt for the buttons. */
 @media (max-width: 1100px) {

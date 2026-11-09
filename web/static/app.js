@@ -415,10 +415,12 @@
     if (!flagClashes()) return;
     const button = printNow ? $("a-print") : $("a-send");
     await withBusy(button, "Enviando…", async () => {
+      const nivelar = $("nivelar");
       const data = await call("/api/send", {
         file: sliced,
         print_now: printNow,
         mappings: mappings,
+        leveling: nivelar ? nivelar.checked : undefined,
       });
       say(data.message, "ok");
       refreshPrinter();
