@@ -20,7 +20,7 @@ from . import modelos
 from .ayuda import AYUDA
 from .cad import build_part
 from .catalog import discover as discover_parts
-from .config import BUSCADO, CONFIG, ENV_PATH
+from .config import BUSCADO, CONFIG, ENV_PATH, fecha_perfiles
 from .gcode import default_mappings, is_sliced, read_info
 from .mesh import MeshError, threemf_to_stl
 from .cola import Cola, Despachador
@@ -105,6 +105,31 @@ def _version_app() -> str:
         return "version de casa"
     sha = version_instalada(raiz)
     return f"v{sha[:7]}" if sha else "sin marca de version"
+
+
+def _laminador_puesto() -> dict | None:
+    """Qué laminador se está usando y de cuándo son sus perfiles de la AD5X.
+
+    Esto se ve en pantalla porque es la causa de un fallo que no se puede
+    adivinar: los perfiles del laminador son los que ponen velocidades y
+    aceleraciones, y cuando la impresora actualiza su firmware y el
+    laminador se queda viejo, las piezas empiezan a salir mal sin que nada
+    dé un error.
+    """
+    if not CONFIG.slicer_available or CONFIG.slicer_exe is None:
+        return None
+
+    fecha = None
+    perfiles = CONFIG.system_profiles
+    if perfiles is not None:
+        fecha = time.strftime(
+            "%d/%m/%Y", time.localtime(fecha_perfiles(perfiles)))
+
+    return {
+        "nombre": CONFIG.slicer_exe.parent.name,
+        "ruta": str(CONFIG.slicer_exe),
+        "perfiles": fecha,
+    }
 
 
 def _catalogue():
@@ -205,6 +230,7 @@ def index(request: Request):
             "printer_ready": CONFIG.printer_configured,
             "modelos_ready": modelos.hay_token(),
             "version": _version_app(),
+            "laminador": _laminador_puesto(),
             "ayuda": AYUDA,
         },
     )

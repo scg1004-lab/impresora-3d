@@ -76,6 +76,70 @@ CASOS = [
 ]
 
 
+def con_perfiles_de(exe: Path, cuando: str) -> None:
+    """Le pone a una instalación perfiles de la AD5X con una fecha dada.
+
+    `cuando` es «2025-09-24». La fecha va al fichero del perfil y a la
+    carpeta, que es lo que mira la app para saber cuál es el más nuevo.
+    """
+    import datetime
+    ano, mes, dia = (int(p) for p in cuando.split("-"))
+    sello = datetime.datetime(ano, mes, dia).timestamp()
+
+    perfiles = exe.parent / "resources" / "profiles" / "Flashforge"
+    maquina = perfiles / "machine"
+    maquina.mkdir(parents=True, exist_ok=True)
+    ficha = maquina / "Flashforge AD5X 0.4 nozzle.json"
+    ficha.write_text('{"printer_model": "Flashforge AD5X"}', encoding="utf-8")
+    # Los ficheros primero y las carpetas después: escribir dentro de una
+    # carpeta le cambia la fecha.
+    os.utime(ficha, (sello, sello))
+    os.utime(maquina, (sello, sello))
+    os.utime(perfiles, (sello, sello))
+
+
+def caso_dos_instalados() -> None:
+    """Con los dos instalados, tiene que ganar el de perfiles más nuevos.
+
+    Es lo que pasa de verdad cuando alguien actualiza: Flashforge renombró
+    el programa, así que el nuevo se instala al lado del viejo en vez de
+    encima. Si gana el viejo, se sigue laminando con perfiles de hace un
+    año y la impresora, con su firmware nuevo, imprime mal.
+    """
+    for titulo, orden in (
+        ("el viejo primero", ("viejo", "nuevo")),
+        ("el nuevo primero", ("nuevo", "viejo")),
+    ):
+        base = Path(tempfile.mkdtemp(prefix="orca-dos-"))
+        try:
+            instalados = {
+                "viejo": (lambda: con_perfiles_de(
+                    instalacion(base, "Flashforge/Orca-Flashforge",
+                                "orca-flashforge.exe"), "2025-09-24")),
+                "nuevo": (lambda: con_perfiles_de(
+                    instalacion(base, "Flashforge/Flash Studio Desktop",
+                                "FlashStudio.exe"), "2026-10-27")),
+            }
+            # El orden de creación cambia el orden en que aparecen al
+            # recorrer la carpeta del fabricante: los dos casos tienen que
+            # dar lo mismo.
+            for cual in orden:
+                instalados[cual]()
+
+            hallado = buscar(base)
+            # Sin mirar mayúsculas: el nombre sale de la lista de nombres
+            # conocidos, no de cómo esté escrito en el disco.
+            esperado = "flashstudio.exe"
+            if hallado is None or hallado.name.lower() != esperado:
+                fallos.append(f"dos instalados, {titulo}: esperaba "
+                              f"{esperado}, salió {hallado}")
+                print(f"   FALLO  dos instalados, {titulo}: {hallado}")
+            else:
+                print(f"   OK   dos instalados, {titulo} -> {hallado.parent.name}")
+        finally:
+            shutil.rmtree(base, ignore_errors=True)
+
+
 def main() -> int:
     for titulo, carpeta, exe, debe_salir in CASOS:
         base = Path(tempfile.mkdtemp(prefix="orca-falso-"))
@@ -97,6 +161,8 @@ def main() -> int:
                       + (f" -> {hallado.name}" if hallado else " (no lo da por bueno)"))
         finally:
             shutil.rmtree(base, ignore_errors=True)
+
+    caso_dos_instalados()
 
     # Y en este ordenador, el de verdad tiene que seguir apareciendo.
     print("\nEn este ordenador:")

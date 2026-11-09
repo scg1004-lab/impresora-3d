@@ -256,30 +256,62 @@ def _rebuscar() -> Path | None:
     return None
 
 
-def _find_slicer() -> Path | None:
-    """Localiza el ejecutable de Orca, mirando donde haga falta."""
-    BUSCADO.clear()
+def _perfiles_de(exe: Path) -> Path | None:
+    """La carpeta de perfiles que acompaña a un ejecutable."""
+    carpeta = exe.parent / "resources" / "profiles" / "Flashforge"
+    return carpeta if carpeta.is_dir() else None
 
-    override = os.getenv("SLICER_EXE")
-    if override:
-        BUSCADO.append(f"SLICER_EXE del .env: {override}")
-        candidato = Path(override)
-        return candidato if candidato.is_file() else None
+
+def fecha_perfiles(perfiles: Path) -> float:
+    """De cuándo son los perfiles de la AD5X de una instalación.
+
+    De los ficheros de la máquina, no de la carpeta: la fecha de la carpeta
+    cambia en cuanto algo escribe dentro (una caché, un ajuste propio) y
+    entonces miente. En este ordenador la carpeta dice octubre de 2026 y los
+    perfiles son de septiembre de 2025.
+    """
+    maquina = perfiles / "machine"
+    if maquina.is_dir():
+        fichas = [p.stat().st_mtime for p in maquina.glob("*AD5X*.json")]
+        if fichas:
+            return max(fichas)
+    return perfiles.stat().st_mtime
+
+
+def _cuando(exe: Path) -> float:
+    """Cómo de reciente es una instalación, por sus PERFILES.
+
+    Por los perfiles y no por el ejecutable: son ellos los que deciden
+    temperaturas, velocidades y aceleraciones, que es lo que tiene que ir a
+    juego con el firmware de la máquina. Un ejecutable nuevo con perfiles
+    viejos sigue laminando viejo.
+    """
+    perfiles = _perfiles_de(exe)
+    if perfiles is None:
+        # Sin perfiles no hay nada que comparar; que gane cualquiera que sí
+        # los tenga, por viejos que sean.
+        return 0.0
+    return fecha_perfiles(perfiles)
+
+
+def _candidatos() -> list[Path]:
+    """Todos los laminadores instalados, sin repetir."""
+    vistos: list[Path] = []
+
+    def anotar(carpeta: Path) -> None:
+        BUSCADO.append(str(carpeta))
+        exe = _exe_dentro(carpeta)
+        if exe and exe not in vistos:
+            vistos.append(exe)
 
     # 1) Lo que dice Windows que se instaló. Es lo que funciona en un
     #    ordenador que no es el tuyo.
     for carpeta in _del_registro():
-        BUSCADO.append(str(carpeta))
-        exe = _exe_dentro(carpeta)
-        if exe:
-            return exe
+        anotar(carpeta)
 
     # 2) Lo que cuelgue de la carpeta del fabricante, se llame como se llame.
     for carpeta in _del_fabricante():
-        BUSCADO.append(str(carpeta))
-        exe = _exe_dentro(carpeta)
-        if exe:
-            return exe
+        anotar(carpeta)
 
     # 3) Los sitios de siempre, que son los más rápidos de mirar.
     program_files = Path(os.getenv("PROGRAMFILES", r"C:\Program Files"))
@@ -294,12 +326,33 @@ def _find_slicer() -> Path | None:
         program_files_x86 / "OrcaSlicer",
         local_programs / "OrcaSlicer",
     ):
-        BUSCADO.append(str(carpeta))
-        exe = _exe_dentro(carpeta)
-        if exe:
-            return exe
+        anotar(carpeta)
 
-    # 4) Y si sigue sin aparecer, rebuscar en las carpetas de programas.
+    return vistos
+
+
+def _find_slicer() -> Path | None:
+    """Localiza el laminador. Con varios instalados, el de perfiles más nuevos.
+
+    Flashforge renombró «Orca-Flashforge» a «Flash Studio Desktop», así que
+    es normal acabar con los dos en el mismo ordenador. Quedarse con el
+    primero que aparezca significa seguir laminando con los perfiles viejos
+    sin enterarse, y los perfiles son los que ponen las aceleraciones que
+    tienen que ir a juego con el firmware de la impresora.
+    """
+    BUSCADO.clear()
+
+    override = os.getenv("SLICER_EXE")
+    if override:
+        BUSCADO.append(f"SLICER_EXE del .env: {override}")
+        candidato = Path(override)
+        return candidato if candidato.is_file() else None
+
+    instalados = _candidatos()
+    if instalados:
+        return max(instalados, key=_cuando)
+
+    # Y si sigue sin aparecer, rebuscar en las carpetas de programas.
     return _rebuscar()
 
 

@@ -24,6 +24,15 @@ AYUDA: dict[str, str] = {
         "Si la API no contesta pero la impresora se anuncia en la red, dice "
         "«sin modo LAN». El avance es la capa actual sobre el total."
     ),
+    "laminador": (
+        "El programa de Flashforge que convierte la pieza en instrucciones "
+        "para la impresora, y la fecha de sus perfiles de la AD5X. Los "
+        "perfiles son los que fijan velocidades, aceleraciones y "
+        "temperaturas: si la impresora actualiza su firmware y el laminador "
+        "se queda atrás, las piezas pueden salir con las capas desplazadas "
+        "sin que nada dé error. Con dos laminadores instalados, la app usa "
+        "el de perfiles más nuevos."
+    ),
     # --- catálogo -----------------------------------------------------------
     "catalogo": (
         "Piezas paramétricas: cada una dibuja el modelo con CadQuery a partir "

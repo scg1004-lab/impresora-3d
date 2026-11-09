@@ -26,6 +26,10 @@
       alguien dice que no le sale lo nuevo. Va de chip, como los demas.
     #}
     <div class="chip version" title="La versión del programa que tienes puesta. Se actualiza sola al abrir el programa.">{{ version }}</div>
+    {% if laminador %}
+    <div class="chip version">{{ laminador.nombre }}{% if laminador.perfiles %} · perfiles {{ laminador.perfiles }}{% endif %}</div>
+    {{ tip('laminador', 'Laminador', 'help-tip--sep') }}
+    {% endif %}
   </div>
 </header>
 
