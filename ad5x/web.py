@@ -125,8 +125,12 @@ def _laminador_puesto() -> dict | None:
         fecha = time.strftime(
             "%d/%m/%Y", time.localtime(fecha_perfiles(perfiles)))
 
+    # El nombre del programa, no el de su carpeta: Flash Studio se instala
+    # encima del Orca viejo y se queda en la carpeta «Orca-Flashforge», así
+    # que la carpeta dice el nombre de hace dos versiones.
+    stem = CONFIG.slicer_exe.stem
     return {
-        "nombre": CONFIG.slicer_exe.parent.name,
+        "nombre": stem.title() if stem.islower() else stem,
         "ruta": str(CONFIG.slicer_exe),
         "perfiles": fecha,
     }
