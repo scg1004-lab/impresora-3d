@@ -116,6 +116,12 @@
             {% endfor %}
           </select>
         </label>
+        <label>Agarre a la base {{ tip('agarre', 'Agarre a la base') }}
+          <select id="agarre">
+            <option value="auto" selected>Lo decide el laminador</option>
+            <option value="faldilla">Faldilla de 5 mm</option>
+          </select>
+        </label>
         <p class="perfil-claves muted">Lo que fija el perfil:
           <span>altura de capa {{ tip('altura_capa', 'Altura de capa') }}</span>
           <span>relleno {{ tip('relleno', 'Relleno') }}</span>

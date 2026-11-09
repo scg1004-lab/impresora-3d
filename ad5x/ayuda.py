@@ -24,6 +24,15 @@ AYUDA: dict[str, str] = {
         "Si la API no contesta pero la impresora se anuncia en la red, dice "
         "«sin modo LAN». El avance es la capa actual sobre el total."
     ),
+    "agarre": (
+        "Cómo se sujeta la pieza a la bandeja. «Lo decide el laminador» deja "
+        "que lo elija él, que es lo normal, pero en piezas planas y bajas "
+        "(un marcapáginas, un llavero) suele decidir que no hace falta nada "
+        "y la pieza se despega a media impresión. «Faldilla» añade un borde "
+        "liso de 5 mm alrededor de la primera capa, pegado a la pieza: "
+        "agarra mucho más y luego se quita con la uña. Gasta un poco de "
+        "plástico y no cambia la pieza."
+    ),
     "laminador": (
         "El programa de Flashforge que convierte la pieza en instrucciones "
         "para la impresora, y la fecha de sus perfiles de la AD5X. Los "

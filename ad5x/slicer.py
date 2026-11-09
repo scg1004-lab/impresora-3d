@@ -122,16 +122,49 @@ def _user_profiles(config: Config) -> tuple[list[Path], list[Path]]:
     return settings, filaments
 
 
+# Cuánta faldilla: un anillo de 5 mm pegado a la pieza. Es lo que
+# recomiendan los perfiles de Orca para piezas bajas y es suficiente para
+# una pieza plana; más ancha solo gasta plástico y cuesta despegarla.
+FALDILLA_MM = 5
+
+
+def _con_faldilla(proceso: Path, donde: Path) -> Path:
+    """Una copia del perfil de proceso que obliga a poner faldilla.
+
+    Los perfiles del fabricante traen `auto_brim`, o sea «ya decidiré yo»,
+    y en una pieza plana y baja el laminador decide que no hace falta.
+    Luego la pieza se despega a mitad y sale una maraña.
+
+    Se copia a una carpeta nuestra porque los del fabricante están en
+    Archivos de programa y no se pueden tocar. La copia lleva todo lo
+    demás igual, así que solo cambia el agarre.
+    """
+    datos = json.loads(proceso.read_text(encoding="utf-8"))
+    datos["brim_type"] = "outer_only"
+    datos["brim_width"] = str(FALDILLA_MM)
+    datos["name"] = f"{datos.get('name', proceso.stem)} con faldilla"
+
+    copia = donde / "proceso-con-faldilla.json"
+    copia.write_text(json.dumps(datos, ensure_ascii=False), encoding="utf-8")
+    return copia
+
+
 def _profile_args(
-    config: Config, material: str, quality: str, nozzle: str
+    config: Config, material: str, quality: str, nozzle: str,
+    *, faldilla: bool = False, taller: Path | None = None,
 ) -> list[str]:
     settings, filaments = _user_profiles(config)
+    propios = bool(settings)
 
     if not settings and config.system_profiles is not None:
-        settings = [
-            _machine(config.system_profiles, nozzle),
-            _pick(config.system_profiles, "process", quality, nozzle),
-        ]
+        proceso = _pick(config.system_profiles, "process", quality, nozzle)
+        if faldilla and taller is not None:
+            proceso = _con_faldilla(proceso, taller)
+        settings = [_machine(config.system_profiles, nozzle), proceso]
+    elif faldilla and propios:
+        # Con perfiles propios en perfiles/ manda el usuario: si los ha
+        # puesto, es porque quiere exactamente eso.
+        pass
     if not filaments and config.system_profiles is not None:
         filaments = [_pick(config.system_profiles, "filament", material, nozzle)]
 
@@ -215,6 +248,7 @@ def slice_stl(
     material: str = DEFAULT_MATERIAL,
     quality: str = DEFAULT_QUALITY,
     nozzle: str = DEFAULT_NOZZLE,
+    faldilla: bool = False,
     output_dir: Path | None = None,
 ) -> Sliced:
     if not config.slicer_available:
@@ -253,7 +287,8 @@ def slice_stl(
         command = [
             str(config.slicer_exe),
             str(entrada),
-            *_profile_args(config, material, quality, nozzle),
+            *_profile_args(config, material, quality, nozzle,
+                           faldilla=faldilla, taller=obrador),
             "--orient", "1",
             "--arrange", "1",
             "--slice", "0",

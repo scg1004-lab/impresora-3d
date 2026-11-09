@@ -390,10 +390,12 @@
     await withBusy($("a-slice"), "Calculando tiempo…", async () => {
       const material = $("material");
       const quality = $("quality");
+      const agarre = $("agarre");
       const data = await call("/api/slice", {
         file: sliceFile,
         material: material ? material.value : undefined,
         quality: quality ? quality.value : undefined,
+        faldilla: agarre ? agarre.value === "faldilla" : undefined,
       });
       sliced = data.file;
       updateSendButtons();

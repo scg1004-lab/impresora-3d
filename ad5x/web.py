@@ -166,6 +166,7 @@ class SliceRequest(BaseModel):
     file: str
     material: str = DEFAULT_MATERIAL
     quality: str = DEFAULT_QUALITY
+    faldilla: bool = False
 
 
 class QueueRequest(BaseModel):
@@ -275,7 +276,8 @@ def api_slice(request: SliceRequest):
     stl = _safe_output(request.file)
     try:
         result = slice_stl(
-            stl, CONFIG, material=request.material, quality=request.quality
+            stl, CONFIG, material=request.material, quality=request.quality,
+            faldilla=request.faldilla
         )
     except SlicerError as exc:
         raise HTTPException(400, str(exc)) from exc
