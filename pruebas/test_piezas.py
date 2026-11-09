@@ -45,7 +45,18 @@ VARIANTES: dict[str, list[dict]] = {
         {"sello": True, "texto": "LUCIA", "ancho": 9, "grabado": True},
         {"sello": True, "texto": "S", "dos_colores": True},
     ],
-    "caja": [{"with_lid": False}, {"dos_colores": True}],
+    "caja": [
+        {"with_lid": False},
+        {"dos_colores": True},
+        # El nombre de la tapa: calculado solo, a medida, y con bobina aparte.
+        # Siguen siendo dos cuerpos, la caja y la tapa: el nombre es un hueco.
+        {"nombre": "LUCIA", "_trozos": 2},
+        {"nombre": "MAMA", "nombre_tamano": 14.0, "_trozos": 2},
+        {"nombre": "ANA", "dos_colores": True},
+        # Caja pequeña con nombre largo: que quepa a base de letra chica.
+        {"nombre": "ROBERTO", "width": 40.0, "depth": 30.0, "height": 20.0,
+         "_trozos": 2},
+    ],
     "soporte_cascos": [
         {"forma": "Bajo la mesa"},
         {"forma": "Bajo la mesa", "hueco": 60.0, "caida": 15.0, "grueso": 25.0},

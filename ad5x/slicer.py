@@ -212,6 +212,62 @@ def _es_proyecto(path: Path) -> bool:
         return "Metadata/model_settings.config" in z.namelist()
 
 
+# Colores de relleno para los filamentos que añadimos: solo sirven para
+# distinguirlos en la lista mientras se eligen las bobinas de verdad.
+PALETA = ("#F2754E", "#2750E0", "#FEF043", "#0ACC38")
+
+
+def _cuantas_partes(piezas: dict[str, bytes]) -> int:
+    """Cuántas partes con color propio lleva el proyecto."""
+    bruto = piezas.get("Metadata/model_settings.config")
+    if not bruto:
+        return 0
+    return len(re.findall(rb"<part\b", bruto))
+
+
+def _estirar_por_filamento(ajustes: dict, tenia: int, quiere: int) -> dict:
+    """Alarga a `quiere` las listas que llevaban un valor por filamento.
+
+    En un proyecto, todo lo que es por filamento es una lista con tantos
+    elementos como filamentos haya. Así que se reconocen por su largo: las
+    que midan lo que medía la plantilla se repiten hasta el nuevo número.
+    Dejar una corta no da error al laminar; simplemente esa parte sale del
+    color de la primera, que es peor porque no se ve hasta que está hecha.
+    """
+    if quiere <= tenia or tenia <= 0:
+        return ajustes
+    salida = dict(ajustes)
+    for clave, valor in ajustes.items():
+        if isinstance(valor, list) and len(valor) == tenia and valor:
+            salida[clave] = list(valor) + [valor[-1]] * (quiere - tenia)
+
+    # Dos claves no son «un valor por filamento» y hay que rehacerlas, o el
+    # laminador para con «Flush volumes matrix do not match to the correct
+    # size!»: la purga al cambiar de color es de cada filamento a cada otro.
+    viejos = [str(v) for v in (ajustes.get("flush_volumes_matrix") or [])]
+    fuera = [v for i, v in enumerate(viejos) if i % (tenia + 1) != 0] or ["280"]
+    purga = max(fuera, key=lambda v: float(v or 0))
+    salida["flush_volumes_matrix"] = [
+        "0" if fila == columna else purga
+        for fila in range(quiere) for columna in range(quiere)
+    ]
+
+    vector = [str(v) for v in (ajustes.get("flush_volumes_vector") or [])]
+    por_filamento = len(vector) // tenia if tenia and vector else 2
+    salida["flush_volumes_vector"] = (
+        vector[:por_filamento] or ["140", "140"]
+    ) * quiere
+
+    # Que cada filamento nuevo se vea distinto en la lista de bobinas: con
+    # dos iguales no hay forma de saber cuál es cuál al asignarlas.
+    colores = [str(c) for c in (salida.get("filament_colour") or [])]
+    if colores:
+        for indice in range(tenia, min(quiere, len(colores))):
+            colores[indice] = PALETA[(indice - tenia) % len(PALETA)]
+        salida["filament_colour"] = colores
+    return salida
+
+
 def _con_material(proyecto: Path, filamento: Path, destino: Path) -> Path:
     """Copia del proyecto con el material elegido metido dentro.
 
@@ -229,7 +285,14 @@ def _con_material(proyecto: Path, filamento: Path, destino: Path) -> Path:
     if bruto:
         try:
             ajustes = json.loads(bruto.decode("utf-8"))
-            extrusores = len(ajustes.get("filament_type") or ["", ""])
+            tenia = len(ajustes.get("filament_type") or ["", ""])
+            # Tantos filamentos como partes tenga la pieza. La plantilla
+            # trae dos fijos, así que una pieza de tres partes se quedaba
+            # con la tercera sin filamento al que ir y todo salía de un
+            # color, sin un solo aviso: el g-code decía «filament_map =
+            # 1,1,3» apuntando a un filamento 3 que no existía.
+            extrusores = max(_cuantas_partes(piezas), tenia)
+            ajustes = _estirar_por_filamento(ajustes, tenia, extrusores)
             ajustes = aplicar_filamento(ajustes, perfil, extrusores)
             piezas["Metadata/project_settings.config"] = json.dumps(ajustes).encode()
         except (ValueError, KeyError):
