@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,6 +25,13 @@ def _buscar_env() -> Path:
 
 ENV_PATH = _buscar_env()
 load_dotenv(ENV_PATH)
+
+
+# Cada cuánto se vuelve a mirar si ya han instalado el laminador, en
+# segundos. Rebuscar recorre las carpetas de programas y esto se pregunta en
+# cada carga de la página.
+ESPERA_REBUSCAR = 20.0
+_ULTIMA_BUSQUEDA = 0.0
 
 
 def _flag(name: str, default: bool = False) -> bool:
@@ -64,7 +72,33 @@ class Config:
 
     @property
     def slicer_available(self) -> bool:
-        return self.slicer_exe is not None and self.slicer_exe.is_file()
+        if self.slicer_exe is not None and self.slicer_exe.is_file():
+            return True
+        # Donde estaba ya no hay nada: puede que lo acaben de instalar o de
+        # actualizar con la app abierta, que es justo lo que pasa cuando uno
+        # lee «no encuentro Orca» y va a instalarlo. Si solo se mira al
+        # arrancar, la app dice que no lo tiene con el programa ya puesto.
+        #
+        # Con espera entre intentos: rebuscar recorre las carpetas de
+        # programas y esto se pregunta en cada carga de la página.
+        global _ULTIMA_BUSQUEDA
+        ahora = time.monotonic()
+        if ahora - _ULTIMA_BUSQUEDA < ESPERA_REBUSCAR:
+            return False
+        _ULTIMA_BUSQUEDA = ahora
+        return self.volver_a_buscar_laminador() is not None
+
+    def volver_a_buscar_laminador(self) -> Path | None:
+        """Busca otra vez el laminador y se queda con lo que encuentre.
+
+        Cambia el objeto por dentro a propósito: `CONFIG` es uno solo y lo
+        tienen importado media docena de módulos, así que crear otro no les
+        llegaría.
+        """
+        exe = _find_slicer()
+        object.__setattr__(self, "slicer_exe", exe)
+        object.__setattr__(self, "system_profiles", _system_profiles(exe))
+        return exe
 
     @property
     def vendor_profiles_available(self) -> bool:

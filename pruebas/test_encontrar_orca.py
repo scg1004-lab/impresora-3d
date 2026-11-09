@@ -100,6 +100,55 @@ def con_perfiles_de(exe: Path, cuando: str,
     os.utime(perfiles, (sello, sello))
 
 
+def caso_instalar_con_la_app_abierta() -> None:
+    """Instalar el laminador con el Taller abierto tiene que bastar.
+
+    El caso de verdad: la app dice «no encuentro Orca», uno va y lo
+    instala… y la app sigue diciendo lo mismo, porque solo miró al
+    arrancar. Pasa igual al actualizar, que cambia el nombre del
+    ejecutable y deja la ruta vieja apuntando a nada.
+    """
+    import dataclasses
+
+    base = Path(tempfile.mkdtemp(prefix="orca-enmarcha-"))
+    try:
+        # La app arrancó cuando ahí no había nada.
+        config = dataclasses.replace(
+            cfg.CONFIG, slicer_exe=base / "Program Files" / "ni-esta" / "x.exe",
+            system_profiles=None)
+
+        entorno = {
+            "PROGRAMFILES": str(base / "Program Files"),
+            "PROGRAMFILES(X86)": str(base / "Program Files (x86)"),
+            "LOCALAPPDATA": str(base / "AppData"),
+            "APPDATA": str(base / "AppData"),
+        }
+        with patch.dict(os.environ, entorno), \
+             patch.dict(os.environ, {"SLICER_EXE": ""}), \
+             patch.object(cfg, "_del_registro", return_value=[]):
+
+            cfg._ULTIMA_BUSQUEDA = 0.0
+            if config.slicer_available:
+                fallos.append("app abierta: dice que hay laminador y no hay")
+                print("   FALLO  app abierta: lo da por bueno sin haberlo")
+
+            # Ahora se instala, con la app ya en marcha.
+            exe = instalacion(base, "Flashforge/Flash Studio Desktop",
+                              "FlashStudio.exe")
+            con_perfiles_de(exe, "2026-10-27")
+
+            cfg._ULTIMA_BUSQUEDA = 0.0
+            if config.slicer_available and config.system_profiles is not None:
+                print("   OK   app abierta: lo encuentra sin reiniciar "
+                      f"-> {config.slicer_exe.name}")
+            else:
+                fallos.append("app abierta: no lo ve hasta reiniciar")
+                print("   FALLO  app abierta: no lo ve hasta reiniciar")
+    finally:
+        cfg._ULTIMA_BUSQUEDA = 0.0
+        shutil.rmtree(base, ignore_errors=True)
+
+
 def caso_carpeta_de_perfiles() -> None:
     """Los perfiles tienen que aparecer aunque su carpeta se llame de otra forma.
 
@@ -202,6 +251,7 @@ def main() -> int:
         finally:
             shutil.rmtree(base, ignore_errors=True)
 
+    caso_instalar_con_la_app_abierta()
     caso_carpeta_de_perfiles()
     caso_dos_instalados()
 
