@@ -467,7 +467,10 @@ class Printer:
             raise PrinterError(f"La subida falló: {exc}") from exc
 
         if data.get("code") not in (0, "0", 200):
-            raise PrinterError(f"La subida falló: {data.get('message') or 'sin detalle'}")
+            motivo = data.get("message") or "sin detalle"
+            if "busy" in str(motivo).lower() or "ocupada" in str(motivo).lower():
+                raise PrinterError(f"La impresora no acepta trabajos: {self._por_que_ocupada()}")
+            raise PrinterError(f"La subida falló: {motivo}")
 
         # The printer indexes an upload a few seconds after accepting it, so
         # a listing taken straight away does not show it yet. Give it time
@@ -488,6 +491,45 @@ class Printer:
             f"La impresora aceptó «{path.name}» pero no aparece en su lista "
             f"tras {LISTING_RETRIES * LISTING_RETRY_WAIT:.0f} segundos. "
             "Míralo en su pantalla antes de volver a mandarlo."
+        )
+
+    def _por_que_ocupada(self) -> str:
+        """Por qué la impresora dice que no, en cristiano y con qué hacer.
+
+        «Printer is Busy» es lo único que contesta la máquina, y vale igual
+        para «estoy imprimiendo» que para «tengo un aviso sin cerrar en la
+        pantalla». La diferencia importa: lo primero es esperar y lo
+        segundo es ir y tocarla, y no se puede adivinar desde aquí.
+        """
+        try:
+            estado = self.status()
+        except PrinterError:
+            return "dice que está ocupada, pero no contesta a qué está haciendo"
+
+        crudo = estado.raw
+        trabajo = str(crudo.get("printFileName") or "").strip()
+        capa, total = crudo.get("printLayer"), crudo.get("targetPrintLayer")
+        donde = f", capa {capa} de {total}" if capa and total else ""
+        cual = f" «{trabajo}»" if trabajo else ""
+
+        estados = {
+            "printing": f"está imprimiendo{cual}{donde}. Espera a que acabe o párala en su pantalla.",
+            "heating": "se está calentando para el trabajo anterior.",
+            "pausing": "está parando el trabajo anterior.",
+            "paused": f"tiene{cual} en pausa. Reanúdalo o cancélalo en su pantalla.",
+            "cancel": (
+                f"tiene en pantalla el aviso del trabajo cancelado{cual}{donde}. "
+                "Ve a la impresora, confírmalo para que vuelva a «lista», y "
+                "quita de la bandeja lo que haya quedado."
+            ),
+            "completed": (
+                f"tiene en pantalla el aviso de trabajo terminado{cual}. "
+                "Confírmalo y retira la pieza de la bandeja."
+            ),
+        }
+        return estados.get(
+            estado.state.lower(),
+            f"está en «{estado.state}»{cual}{donde}. Míralo en su pantalla.",
         )
 
     def free_for_work(self) -> bool:
@@ -539,9 +581,9 @@ class Printer:
                 if intento == INTENTOS_LANZAR - 1:
                     raise PrinterError(
                         f"«{nombre}» ya está guardado en la impresora, pero no "
-                        "ha podido arrancar porque está ocupada. Lánzalo desde "
-                        "su pantalla cuando acabe, o añádelo a la cola y se "
-                        "manda solo en cuanto quede libre."
+                        f"ha podido arrancar: {self._por_que_ocupada()} "
+                        "También puedes añadirlo a la cola y se manda solo en "
+                        "cuanto quede libre."
                     ) from exc
                 time.sleep(ESPERA_LANZAR)
 

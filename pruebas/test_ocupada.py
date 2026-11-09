@@ -140,6 +140,44 @@ def main() -> int:
                     fallos.append(f"ha cambiado el error: {exc}")
                     print(f"   FALLO  {exc}")
 
+        print("4. «Busy» al subir: se dice qué le pasa de verdad")
+        # La maquina contesta «Printer is Busy» tanto si esta imprimiendo
+        # como si tiene un aviso sin cerrar en su pantalla. Lo primero es
+        # esperar y lo segundo es ir a tocarla: si no se distingue, uno se
+        # queda mirando una impresora que no va a arrancar sola.
+        estados = {
+            "cancel": ("pantalla", "confírmalo"),
+            "printing": ("imprimiendo", "Espera"),
+            "completed": ("terminado", "retira"),
+        }
+        for estado, (pista, accion) in estados.items():
+            def post_ocupada(url, estado=estado, **kwargs):
+                if url.endswith("/uploadGcode"):
+                    return Respuesta({"code": 5, "message": "Printer is Busy"})
+                if url.endswith("/detail"):
+                    return Respuesta({"code": 0, "detail": {
+                        "status": estado, "printFileName": "lo-de-antes.gcode.3mf",
+                        "printLayer": 11, "targetPrintLayer": 30,
+                    }})
+                return Respuesta({"code": 0, "message": "Success"})
+
+            impresora = mod.Printer(configuracion(tmp))
+            impresora._host = "127.0.0.1"
+            with patch.object(mod.requests, "post", side_effect=post_ocupada), \
+                 patch.object(mod.Printer, "_answers_here", return_value=True), \
+                 patch.object(mod.time, "sleep", return_value=None):
+                try:
+                    impresora.upload(tmp / "pieza.gcode", print_now=True)
+                    fallos.append(f"{estado}: no ha avisado de nada")
+                    print(f"   FALLO  {estado}: ha dicho que todo bien")
+                except mod.PrinterError as exc:
+                    texto = str(exc)
+                    if pista in texto and accion in texto and "lo-de-antes" in texto:
+                        print(f"   OK   {estado}: {texto[:64]}…")
+                    else:
+                        fallos.append(f"{estado}: el aviso no ayuda: {texto}")
+                        print(f"   FALLO  {estado}: {texto}")
+
         print("\n" + ("TODO CORRECTO" if not fallos else f"{len(fallos)} FALLOS"))
         return 1 if fallos else 0
     finally:
