@@ -45,6 +45,17 @@ VARIANTES: dict[str, list[dict]] = {
         {"sello": True, "texto": "LUCIA", "ancho": 9, "grabado": True},
         {"sello": True, "texto": "S", "dos_colores": True},
     ],
+    "capuchon_llave": [
+        {"texto": "A"},
+        {"texto": "A", "grabado": False},
+        {"texto": "A", "dos_colores": True},
+        {"texto": "CASA"},
+        # Sin agujero aguanta solo a presión, y entonces la letra dispone
+        # de toda la cara.
+        {"texto": "B", "agujero": 0.0},
+        # Una llave de coche: cabeza ancha y gorda.
+        {"texto": "C", "ancho_cabeza": 35.0, "grosor_llave": 6.0, "cubrir": 30.0},
+    ],
     "caja": [
         {"with_lid": False},
         {"dos_colores": True},
