@@ -156,7 +156,13 @@
       if (!w || !h) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h, false);
+      // Con el tercer argumento a false, three.js pone el lienzo a w×h
+      // PÍXELES y no le toca el tamaño en pantalla. Como arriba se le ha
+      // dicho que use la densidad del monitor, en una pantalla al 150 %
+      // el lienzo se dibuja un 50 % más grande que su hueco y se sale por
+      // debajo, tapando material, calidad, el agarre y la casilla de
+      // nivelar: se quedaban solo los ⓘ a la vista, flotando.
+      renderer.setSize(w, h);
     };
     window.addEventListener("resize", resize);
     resize();
