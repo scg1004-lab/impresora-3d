@@ -16,9 +16,11 @@ from __future__ import annotations
 
 import http.client
 import io
+import os
 import shutil
 import sys
 import tempfile
+import time
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
@@ -238,6 +240,31 @@ def main() -> int:  # noqa: C901 - es una lista de casos, se lee de arriba abajo
             bien("el segundo se aparta")
         else:
             mal("los dos han actualizado a la vez")
+    finally:
+        shutil.rmtree(raiz, ignore_errors=True)
+
+    print("12b. Un cerrojo olvidado no deja la app sin actualizar para siempre")
+    # Al cerrar la ventana negra, Windows mata el proceso sin darle tiempo a
+    # quitar el cerrojo. Si se respeta para siempre, la app no se vuelve a
+    # actualizar nunca y sin decir nada: justo lo que pasaba en un portátil
+    # que no era el mío.
+    raiz = paquete_falso()
+    try:
+        olvidado = raiz / act.CERROJO
+        olvidado.mkdir()
+        viejo = time.time() - (act.CERROJO_CADUCA + 120)
+        os.utime(olvidado, (viejo, viejo))
+        correr(raiz, BUENO, sha="3" * 40)
+        if "nueva" in (raiz / "ad5x" / "web.py").read_text(encoding="utf-8"):
+            bien("lo quita y actualiza")
+        else:
+            mal("el cerrojo viejo le sigue bloqueando")
+        parte = (raiz / act.PARTE).read_text(encoding="utf-8") \
+            if (raiz / act.PARTE).is_file() else ""
+        if "cerrojo" in parte:
+            bien("y lo deja dicho en el parte")
+        else:
+            mal("no cuenta que había un cerrojo viejo")
     finally:
         shutil.rmtree(raiz, ignore_errors=True)
 

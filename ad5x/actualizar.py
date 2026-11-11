@@ -49,6 +49,10 @@ MARCA = ".version"        # la versión instalada, para no bajar lo mismo dos ve
 RESPALDO = ".anterior"    # la copia de seguridad, por si la nueva no arranca
 ENTRANTE = ".nuevo"       # donde se arma la versión nueva antes de poner nada
 CERROJO = ".actualizando"  # carpeta-cerrojo: dos arranques a la vez no se pisan
+# Pasado este rato, un cerrojo ya no es de nadie: una actualizacion entera
+# son segundos, y lo que tarda de mas es que no haya internet, que tiene su
+# propio tiempo de espera muy por debajo de esto.
+CERROJO_CADUCA = 10 * 60   # segundos
 PARTE = "actualizaciones.txt"   # que paso en cada arranque, para poder mirarlo
 LINEAS_PARTE = 40               # con las ultimas sobra
 
@@ -429,8 +433,28 @@ def comprobar(raiz: Path) -> str | None:
         try:
             cerrojo.mkdir()
         except FileExistsError:
-            _apuntar(raiz, "otro arranque estaba actualizando; no hago nada")
-            return None
+            # Un cerrojo viejo es un cerrojo olvidado. Al cerrar la ventana
+            # negra, Windows mata el proceso sin darle ocasión de quitarlo, y
+            # entonces el cerrojo se queda ahí para siempre: la app no se
+            # vuelve a actualizar nunca más, y sin decir nada. Pasó.
+            try:
+                edad = time.time() - cerrojo.stat().st_mtime
+            except OSError:
+                edad = 0.0
+            if edad <= CERROJO_CADUCA:
+                _apuntar(raiz, "otro arranque estaba actualizando; no hago nada")
+                return None
+            _apuntar(
+                raiz,
+                f"habia un cerrojo de hace {edad / 60:.0f} min, de un arranque "
+                "que no llego a terminar: lo quito y sigo",
+            )
+            shutil.rmtree(cerrojo, ignore_errors=True)
+            try:
+                cerrojo.mkdir()
+            except OSError as exc:
+                _apuntar(raiz, f"no he podido quitar el cerrojo ({exc})")
+                return None
         except OSError as exc:
             _apuntar(raiz, f"no puedo escribir en la carpeta ({exc})")
             return None
